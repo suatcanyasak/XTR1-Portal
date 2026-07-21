@@ -1,0 +1,211 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AFT-X | XTR1 Portal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+        }
+        /* Üstteki siyah/lacivert bar */
+        .topbar {
+            background-color: #0f293e; 
+            color: white;
+            text-align: center;
+            padding: 8px 0;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            text-align: center;
+        }
+
+        /* --- Arama Alanı Stilleri --- */
+        .search-section {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        .last-used-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .last-used-container .label {
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: #000;
+        }
+        .last-used-box {
+            border: 1px solid #000;
+            background: #fff;
+            padding: 4px 10px;
+            min-width: 160px;
+            text-align: center;
+            font-size: 14px;
+            height: 22px;
+            line-height: 22px;
+        }
+        .search-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .search-container input {
+            border: 1px solid #000;
+            padding: 6px 10px;
+            font-size: 14px;
+            width: 260px;
+            outline: none;
+            box-sizing: border-box;
+            height: 32px;
+        }
+        .search-container button {
+            background-color: #0066c0;
+            color: white;
+            border: none;
+            padding: 0 20px;
+            height: 32px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            transition: background 0.2s;
+        }
+        .search-container button:hover {
+            background-color: #005299;
+        }
+
+        /* --- Başlık --- */
+        h2 {
+            color: #0071C5;
+            font-weight: normal;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        /* --- Buton Grid Düzeni --- */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* Görseldeki gibi 3 sütun */
+            gap: 15px;
+            padding: 0 20px;
+        }
+
+        /* --- Buton Tasarımları (Boyutları Eşitlendi) --- */
+        .tool-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: black;
+            background-color: white;
+            border: 1px solid #333;
+            padding: 10px 12px;
+            font-size: 13px;
+            height: 55px; /* Tüm butonların yüksekliği kesin olarak sabitlendi */
+            box-sizing: border-box;
+            transition: all 0.2s;
+            text-align: center;
+            line-height: 1.3;
+        }
+        .tool-btn:hover {
+            background-color: #e6f3ff;
+            border-color: #0071C5;
+        }
+
+        /* Mobil Ekran Uyumluluğu */
+        @media (max-width: 768px) {
+            .menu-grid {
+                grid-template-columns: repeat(1, 1fr);
+            }
+            .search-section {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="topbar">
+        XTR1 Web Tools Portal
+    </div>
+
+    <div class="container">
+
+        <!-- Arama ve Son Kullanılan Tool Alanı -->
+        <div class="search-section">
+            <div class="last-used-container">
+                <span class="label">Last used tool</span>
+                <div class="last-used-box" id="lastUsedBox">None</div>
+            </div>
+            <div class="search-container">
+                <input type="text" id="toolSearchInput" placeholder="Department or Tool code" onkeydown="handleKeyPress(event)">
+                <button type="button" onclick="searchTool()">Search</button>
+            </div>
+        </div>
+
+        <h2>Select <b>tool</b> at XTR1</h2>
+
+        <!-- Menü Butonları (data-code eklendi) -->
+        <div class="menu-grid">
+            <a href="./XTR1 Workforce Division CSV Format/index.html" class="tool-btn" data-code="1">Workforce Division CSV [1]</a>
+            
+            <a href="./XTR1 Wrangle Occupation CSV Format/index.html" class="tool-btn" data-code="2">Wrangle Occupation CSV [2]</a>
+            
+            <a href="./XTR1 CORA Capacity Management/index.html" class="tool-btn" data-code="3">CORA Capacity Management [3]</a>
+
+            <a href="./XSA9-XTR1 Wrangle Occupation CSV Format Temporary/index.html" class="tool-btn" data-code="4">XSA9-XTR1 Wrangle Occupation CSV Format [4]</a>
+
+            <a href="#" class="tool-btn" data-code="5">Yeni Eklenecek Araç [5]</a>
+        </div>
+    </div>
+
+    <!-- Arama Fonksiyonu JavaScript -->
+    <script>
+        function searchTool() {
+            const input = document.getElementById('toolSearchInput').value.trim();
+            if (!input) return;
+
+            const tools = document.querySelectorAll('.tool-btn');
+            let targetUrl = null;
+
+            tools.forEach(tool => {
+                const code = tool.getAttribute('data-code');
+                // Numaraya göre (örn: 1), braketli numaraya göre (örn: [1]) veya tam isme göre eşleşme kontrolü
+                if (code === input || `[${code}]` === input || tool.textContent.toLowerCase().includes(input.toLowerCase())) {
+                    targetUrl = tool.getAttribute('href');
+                }
+            });
+
+            if (targetUrl && targetUrl !== '#') {
+                window.location.href = targetUrl;
+            } else if (targetUrl === '#') {
+                alert('Bu araç henüz aktif değil!');
+            } else {
+                alert('Girdiğiniz tool numarası veya adı bulunamadı.');
+            }
+        }
+
+        // Enter tuşuna basıldığında aramayı tetikler
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                searchTool();
+            }
+        }
+    </script>
+
+</body>
+</html>

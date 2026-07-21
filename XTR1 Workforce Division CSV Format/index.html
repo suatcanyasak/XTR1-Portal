@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XTR1 Auto Workforce Division Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --secondary: #475569;
+            --background: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --excel-section: #deeaf6;
+            --excel-green: #f0fdf4;
+            --table-header: #f1f5f9;
+            --highlight: #fef2f2;
+            --selected-row: #dbeafe;
+            --kpi-bg: #eff6ff;
+            --kpi-border: #bfdbfe;
+            --kpi-text: #1e40af;
+        }
+
+        /* Karanlık Mod Değişkenleri */
+        [data-theme="dark"] {
+            --background: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --excel-section: #1e3a8a;
+            --excel-green: #064e3b;
+            --table-header: #334155;
+            --highlight: #451a03;
+            --selected-row: #1e3a8a;
+            --kpi-bg: #172554;
+            --kpi-border: #1e3a8a;
+            --kpi-text: #93c5fd;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .theme-toggle-btn {
+            background: var(--secondary);
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: opacity 0.2s;
+        }
+        .theme-toggle-btn:hover { opacity: 0.9; }
+
+        .container {
+            max-width: 1750px;
+            margin: 0 auto;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 20px;
+        }
+
+        .sidebar {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            height: fit-content;
+            border: 1px solid var(--border);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            background: var(--background);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .file-upload-box {
+            border: 2px dashed #3b82f6;
+            background-color: rgba(59, 130, 246, 0.05);
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .file-upload-box:hover, .file-upload-box.dragover {
+            background-color: rgba(59, 130, 246, 0.15);
+            border-color: var(--primary);
+        }
+
+        .file-upload-box strong {
+            font-size: 13px;
+            color: #3b82f6;
+            display: block;
+        }
+
+        .pph-table {
+            width: 100%;
+            font-size: 11px;
+            text-align: center;
+            border-collapse: separate;
+            border-spacing: 0 10px; 
+            margin-bottom: 15px;
+            margin-top: -5px;
+        }
+        .pph-table th {
+            color: var(--text-muted);
+            font-weight: bold;
+            padding-bottom: 4px;
+        }
+        .pph-table td {
+            background-color: var(--background);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            padding: 8px 4px;
+        }
+        .pph-table td:first-child {
+            border-left: 1px solid var(--border);
+            border-top-left-radius: 6px;
+            border-bottom-left-radius: 6px;
+            font-weight: bold;
+        }
+        .pph-table td:last-child {
+            border-right: 1px solid var(--border);
+            border-top-right-radius: 6px;
+            border-bottom-right-radius: 6px;
+        }
+        .pph-table input {
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 6px 2px;
+            background: var(--card-bg);
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        .card-header-toggle {
+            background-color: var(--excel-section);
+            padding: 12px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 16px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            user-select: none;
+            transition: opacity 0.2s ease;
+        }
+        .card-header-toggle:hover {
+            opacity: 0.9;
+        }
+        .card-header-toggle .toggle-icon {
+            font-size: 12px;
+            transition: transform 0.2s ease;
+        }
+        .card-header-toggle.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .card-content-collapse {
+            max-height: 5000px;
+            overflow: hidden;
+            transition: max-height 0.4s ease-in-out, margin-top 0.3s ease;
+            margin-top: 20px;
+        }
+        .card-content-collapse.collapsed {
+            max-height: 0 !important;
+            margin-top: 0 !important;
+        }
+
+        .kpi-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .kpi-box {
+            background-color: var(--kpi-bg);
+            border: 1px solid var(--kpi-border);
+            color: var(--kpi-text);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .kpi-box strong {
+            font-size: 15px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .backlog-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 11px;
+        }
+        .backlog-table th {
+            background-color: #f3f4f6;
+            color: #1f2937;
+            font-weight: bold;
+            padding: 8px 6px;
+            border: 1px solid #d1d5db;
+            text-align: center;
+        }
+        [data-theme="dark"] .backlog-table th {
+            background-color: #374151;
+            color: #f9fafb;
+            border: 1px solid #4b5563;
+        }
+        .backlog-table td {
+            padding: 8px 6px;
+            border: 1px solid #e5e7eb;
+            vertical-align: middle;
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+        [data-theme="dark"] .backlog-table td {
+            border: 1px solid #4b5563;
+            background-color: rgba(30, 41, 59, 0.5);
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .chart-container {
+            background: var(--background);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            height: 260px;
+            position: relative;
+        }
+
+        table.info-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        table.info-table th, table.info-table td {
+            border: 1px solid var(--border);
+            padding: 8px;
+        }
+
+        table.info-table th {
+            background-color: var(--table-header);
+            font-weight: bold;
+            color: var(--text-muted);
+        }
+
+        .clickable-row {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .clickable-row:hover {
+            background-color: var(--table-header);
+        }
+        .clickable-row.selected-filter {
+            background-color: var(--selected-row) !important;
+            font-weight: bold;
+        }
+
+        .section-title-bar {
+            background-color: var(--excel-section);
+            font-weight: bold;
+            text-align: center;
+            font-size: 13px;
+            padding: 6px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+
+        .highlight-cell {
+            background-color: var(--highlight);
+            font-weight: bold;
+        }
+
+        .top-tables-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .zone-block-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .bottom-table-container {
+            margin-top: 15px;
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .wf-grid-container {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+        }
+
+        .wf-column-box {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: opacity 0.3s ease;
+        }
+
+        .wf-column-box.dimmed {
+            opacity: 0.15;
+        }
+
+        .wf-column-header {
+            background-color: var(--excel-section);
+            font-weight: bold;
+            font-size: 12px;
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .wf-column-body {
+            padding: 8px;
+            min-height: 140px;
+            font-size: 11px;
+            line-height: 1.6;
+            flex-grow: 1;
+        }
+
+        .wf-column-body div {
+            padding: 6px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+        }
+
+        .wf-total-row {
+            background-color: var(--table-header);
+            font-weight: bold;
+            text-align: center;
+            padding: 8px;
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+        }
+
+        .badge-fixed { background-color: #fee2e2; color: #991b1b; font-weight: bold; padding: 2px 6px; border-radius: 4px; font-size: 10px; float: right; }
+        .badge-flex { background-color: #dcfce7; color: #166534; font-weight: bold; padding: 2px 6px; border-radius: 4px; font-size: 10px; float: right; }
+        .badge-ns { background-color: #fef3c7; color: #92400e; font-weight: bold; padding: 2px 6px; border-radius: 4px; font-size: 10px; float: right; }
+        .badge-gift { background-color: #f3e8ff; color: #6b21a8; font-weight: bold; padding: 2px 6px; border-radius: 4px; font-size: 10px; float: right; }
+        
+        .alert-box {
+            padding: 12px;
+            background-color: #fffbeb;
+            border: 1px solid #fef3c7;
+            color: #92400e;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 15px;
+            display: none;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-bar">
+        <h2 style="margin: 0; font-size: 20px; letter-spacing: 0.5px;">🟢 XTR1 Workforce Division Dashboard</h2>
+        <button class="theme-toggle-btn" id="themeToggle">🌓 Mod Değiştir</button>
+    </div>
+
+    <div class="dashboard-grid">
+        
+        <aside class="sidebar">
+            <h3 style="margin-top:0; font-size:15px; border-bottom:1px solid var(--border); padding-bottom:8px;">📊 VERİ YÜKLEME</h3>
+            
+            <div class="file-upload-box" id="dropZone" onclick="document.getElementById('csvFile').click()">
+                <strong id="uploadLabel">📁 Excel/CSV Seçin veya Sürükleyin</strong>
+                <input type="file" id="csvFile" accept=".csv" style="display:none">
+            </div>
+
+            <h3 style="font-size:14px; border-bottom:1px solid var(--border); padding-bottom:4px; margin-top:20px; color:var(--primary);">🕒 TARİH & CPT ARALIĞI</h3>
+           
+            <div class="input-group">
+                <label>Başlangıç Zamanı (CPT)</label>
+                <input type="datetime-local" id="filterStartDate">
+            </div>
+            <div class="input-group">
+                <label>Bitiş Zamanı (CPT)</label>
+                <input type="datetime-local" id="filterEndDate">
+            </div>
+
+            <div class="input-group" style="background-color: rgba(59, 130, 246, 0.08); padding: 10px; border-radius: 6px; border: 1px solid #bfdbfe; margin-top: 15px;">
+                <label style="color: var(--primary); font-weight: bold; margin-bottom: 4px;">⏱️ Hesaplama Başlangıç Zamanı</label>
+                <input type="datetime-local" id="calculationStartTime">
+            </div>
+            
+            <h3 style="font-size:14px; border-bottom:1px solid var(--border); padding-bottom:4px; margin-top:20px;">⚙️ BÖLGESEL HIZ & KAPASİTE (PPH)</h3>
+            
+            <table class="pph-table">
+                <thead>
+                    <tr>
+                        <th>Bölge</th>
+                        <th>SGL</th>
+                        <th>MLT</th>
+                        <th>S-NS</th>
+                        <th>M-NS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>A</td>
+                        <td><input id="pph_A_SGL" type="number" value="80"></td>
+                        <td><input id="pph_A_MLT" type="number" value="120"></td>
+                        <td><input id="pph_A_S_NS" type="number" value="40"></td>
+                        <td><input id="pph_A_M_NS" type="number" value="60"></td>
+                    </tr>
+                    <tr>
+                        <td>D</td>
+                        <td><input id="pph_D_SGL" type="number" value="80"></td>
+                        <td><input id="pph_D_MLT" type="number" value="120"></td>
+                        <td><input id="pph_D_S_NS" type="number" value="40"></td>
+                        <td><input id="pph_D_M_NS" type="number" value="60"></td>
+                    </tr>
+                    <tr>
+                        <td>E</td>
+                        <td><input id="pph_E_SGL" type="number" value="120"></td>
+                        <td><input id="pph_E_MLT" type="number" value="160"></td>
+                        <td><input id="pph_E_S_NS" type="number" value="60"></td>
+                        <td><input id="pph_E_M_NS" type="number" value="80"></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="input-group">
+                <label>Personel Sayısı (Kapasite)</label>
+                <input type="number" id="mevcutPersonel" value="35">
+            </div>
+            <button id="processBtn" style="width:100%; padding:10px; background:var(--primary); color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer; font-size:13px; transition: background 0.2s;">Hesapla / Güncelle</button>
+        </aside>
+
+        <main class="main-content">
+            <div class="kpi-container" id="kpiPanel" style="display:none;">
+                <div class="kpi-box" id="kpiEtaBox"></div>
+                <div class="kpi-box" id="kpiBacklogBox" style="background-color: #fff1f2; border-color: #fecdd3; color: #9f1239;"></div>
+            </div>
+
+            <div id="alertContainer" class="alert-box"></div>
+            
+            <div class="card">
+                <div class="card-header-toggle" onclick="toggleCard('totalDbContent', this)">
+                    <span>TOTAL DB (GENEL ANALİZ)</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+
+                <div class="card-content-collapse" id="totalDbContent">
+                    <small style="display:block; font-size:11px; font-weight:normal; margin-bottom:15px; text-align: center;">💡 Filtrelemek için aşağıdaki Process Path satırlarına tıklayabilirsiniz.</small>
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <canvas id="ppChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="zoneChart"></canvas>
+                        </div>
+                    </div>
+                   
+                    <div class="top-tables-container">
+                        <div>
+                            <div class="section-title-bar">PROCESS PATH KIRILIM</div>
+                            <table class="info-table" style="margin-top:8px;">
+                                <thead>
+                                    <tr><th>Process Path</th><th style="width:90px;">Units</th></tr>
+                                </thead>
+                                <tbody id="ppTableBody">
+                                    <tr class="clickable-row" data-path="SINGLE"><td>SINGLE</td><td class="highlight-cell">0</td></tr>
+                                    <tr class="clickable-row" data-path="MULTI"><td>MULTI</td><td class="highlight-cell">0</td></tr>
+                                    <tr class="clickable-row" data-path="SINGLE NONSORT"><td>SINGLE NONSORT</td><td class="highlight-cell">0</td></tr>
+                                    <tr class="clickable-row" data-path="MULTI NONSORT"><td>MULTI NONSORT</td><td class="highlight-cell">0</td></tr>
+                                    <tr class="clickable-row" data-path="GIFT SINGLE"><td>GIFT SINGLE</td><td class="highlight-cell">0</td></tr>
+                                    <tr class="clickable-row" data-path="GIFT MULTI"><td>GIFT MULTI</td><td class="highlight-cell">0</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div>
+                            <div class="section-title-bar">ZONE KIRILIM</div>
+                            <div class="zone-block-wrapper" id="zoneTablesWrapper" style="margin-top:8px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="bottom-table-container">
+                        <div class="section-title-bar">KAT KIRILIM</div>
+                        <table class="info-table" id="floorTable" style="margin-top:8px;"></table>
+                    </div>
+                    
+                    <div class="bottom-table-container">
+                        <div class="section-title-bar">KORİDOR KIRILIM</div>
+                        <table class="info-table" id="corridorTable" style="margin-top:8px;"></table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="background-color: var(--excel-green);">
+                <div class="card-header-toggle" onclick="toggleCard('wfZoneContent', this)">
+                    <span>WORKFORCE (BÖLGE BAZLI DAĞITIM)</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="card-content-collapse" id="wfZoneContent">
+                    <div class="wf-grid-container" id="wfZoneGrid"></div>
+                </div>
+            </div>
+
+            <div class="card" style="background-color: var(--excel-green);">
+                <div class="card-header-toggle" onclick="toggleCard('wfFloorContent', this)">
+                    <span>WORKFORCE KAT (KAT BAZLI DİNAMİK DAĞITIM)</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="card-content-collapse" id="wfFloorContent">
+                    <div class="wf-grid-container" id="wfFloorGrid"></div>
+                </div>
+            </div>
+
+            <div class="card" style="background-color: var(--excel-green);">
+                <div class="card-header-toggle" onclick="toggleCard('wfCorridorContent', this)">
+                    <span>WORKFORCE KORİDOR (KORİDOR BAZLI DİNAMİK DAĞITIM)</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="card-content-collapse" id="wfCorridorContent">
+                    <div class="wf-grid-container" id="wfCorridorGrid"></div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script>
+    // D KORİDOR HARİTALARI (SET MANTIĞI İLE O(1) HIZLI SORGULAMA)
+    const D_1_1_SET = new Set(["P-1-D201A200","P-1-D201A210","P-1-D201A220","P-1-D201A230","P-1-D201A240","P-1-D202A200","P-1-D202A210","P-1-D202A220","P-1-D202A230","P-1-D202A240","P-1-D202A420","P-1-D203A200","P-1-D203A210","P-1-D203A220","P-1-D203A230","P-1-D203A240","P-1-D204A200","P-1-D204A210","P-1-D204A220","P-1-D204A230","P-1-D204A240","P-1-D205A200","P-1-D205A210","P-1-D205A220","P-1-D205A230","P-1-D205A240","P-1-D205A330","P-1-D206A200","P-1-D206A210","P-1-D206A220","P-1-D206A230","P-1-D206A240","P-1-D207A200","P-1-D207A210","P-1-D207A220","P-1-D207A230","P-1-D207A240","P-1-D208A200","P-1-D208A210","P-1-D208A220","P-1-D208A230","P-1-D208A240","P-1-D209A200","P-1-D209A210","P-1-D209A220","P-1-D209A230","P-1-D209A240","P-1-D210A200","P-1-D210A210","P-1-D210A220","P-1-D210A230","P-1-D210A240","P-1-D211A200","P-1-D211A210","P-1-D211A220","P-1-D211A230","P-1-D211A240","P-1-D212A200","P-1-D212A210","P-1-D212A220","P-1-D212A230","P-1-D212A240","P-1-D213A200","P-1-D213A210","P-1-D213A220","P-1-D213A230","P-1-D213A240","P-1-D214A200","P-1-D214A210","P-1-D214A220","P-1-D214A230","P-1-D214A240","P-1-D215A200","P-1-D215A210","P-1-D215A220","P-1-D215A230","P-1-D215A240","P-1-D216A200","P-1-D216A210","P-1-D216A220","P-1-D216A230","P-1-D216A240","P-1-D217A200","P-1-D217A210","P-1-D217A220","P-1-D217A230","P-1-D217A240","P-1-D218A200","P-1-D218A210","P-1-D218A220","P-1-D218A230","P-1-D218A240"]);
+    const D_1_2_SET = new Set(["P-1-D201A260","P-1-D201A300","P-1-D201A310","P-1-D201A320","P-1-D201A340","P-1-D201A350","P-1-D201A360","P-1-D201A370","P-1-D201A380","P-1-D201A390","P-1-D201A400","P-1-D201A410","P-1-D202A290","P-1-D202A300","P-1-D202A310","P-1-D202A320","P-1-D202A330","P-1-D202A350","P-1-D202A360","P-1-D202A380","P-1-D202A390","P-1-D202A400","P-1-D203A260","P-1-D203A270","P-1-D203A280","P-1-D203A290","P-1-D203A300","P-1-D203A310","P-1-D203A320","P-1-D203A330","P-1-D203A340","P-1-D203A350","P-1-D203A360","P-1-D203A370","P-1-D203A380","P-1-D203A390","P-1-D203A400","P-1-D204A260","P-1-D204A270","P-1-D204A280","P-1-D204A290","P-1-D204A300","P-1-D204A310","P-1-D204A320","P-1-D204A330","P-1-D204A340","P-1-D204A350","P-1-D204A360","P-1-D204A370","P-1-D204A380","P-1-D204A390","P-1-D204A400","P-1-D205A260","P-1-D205A270","P-1-D205A280","P-1-D205A290","P-1-D205A300","P-1-D205A310","P-1-D205A320","P-1-D205A330","P-1-D205A340","P-1-D205A350","P-1-D205A360","P-1-D205A370","P-1-D205A380","P-1-D205A390","P-1-D205A400","P-1-D206A260","P-1-D206A270","P-1-D206A280","P-1-D206A290","P-1-D206A300","P-1-D206A310","P-1-D206A320","P-1-D206A330","P-1-D206A340","P-1-D206A350","P-1-D206A360","P-1-D206A370","P-1-D206A380","P-1-D206A390","P-1-D206A400","P-1-D207A260","P-1-D207A270","P-1-D207A280","P-1-D207A290","P-1-D207A300","P-1-D207A310","P-1-D207A320","P-1-D207A330","P-1-D207A340","P-1-D207A350","P-1-D207A360","P-1-D207A370","P-1-D207A380","P-1-D207A390","P-1-D207A400","P-1-D208A260","P-1-D208A270","P-1-D208A280","P-1-D208A290","P-1-D208A300","P-1-D208A310","P-1-D208A320","P-1-D208A330","P-1-D208A340","P-1-D208A350","P-1-D208A360","P-1-D208A370","P-1-D208A380","P-1-D208A390","P-1-D208A400","P-1-D209A260","P-1-D209A270","P-1-D209A280","P-1-D209A290","P-1-D209A300","P-1-D209A310","P-1-D209A320","P-1-D209A330","P-1-D209A340","P-1-D209A350","P-1-D209A360","P-1-D209A370","P-1-D209A380","P-1-D209A390","P-1-D209A400","P-1-D210A260","P-1-D210A270","P-1-D210A280","P-1-D210A290","P-1-D210A300","P-1-D210A310","P-1-D210A320","P-1-D210A330","P-1-D210A340","P-1-D210A350","P-1-D210A360","P-1-D210A370","P-1-D210A380","P-1-D210A390","P-1-D210A400","P-1-D211A260","P-1-D211A270","P-1-D211A280","P-1-D211A290","P-1-D211A300","P-1-D211A310","P-1-D211A320","P-1-D211A330","P-1-D211A340","P-1-D211A350","P-1-D211A360","P-1-D211A370","P-1-D211A380","P-1-D211A390","P-1-D211A400","P-1-D212A260","P-1-D212A270","P-1-D212A280","P-1-D212A290","P-1-D212A300","P-1-D212A310","P-1-D212A320","P-1-D212A330","P-1-D212A340","P-1-D212A350","P-1-D212A360","P-1-D212A370","P-1-D212A380","P-1-D212A390","P-1-D212A400","P-1-D213A260","P-1-D213A270","P-1-D213A280","P-1-D213A290","P-1-D213A300","P-1-D213A310","P-1-D213A320","P-1-D213A330","P-1-D213A340","P-1-D213A350","P-1-D213A360","P-1-D213A370","P-1-D213A380","P-1-D213A390","P-1-D213A400","P-1-D214A260","P-1-D214A270","P-1-D214A280","P-1-D214A290","P-1-D214A300","P-1-D214A310","P-1-D214A320","P-1-D214A330","P-1-D214A340","P-1-D214A350","P-1-D214A360","P-1-D214A370","P-1-D214A380","P-1-D214A390","P-1-D214A400","P-1-D215A260","P-1-D215A270","P-1-D215A280","P-1-D215A290","P-1-D215A300","P-1-D215A310","P-1-D215A320","P-1-D215A330","P-1-D215A340","P-1-D215A350","P-1-D215A360","P-1-D215A370","P-1-D215A380","P-1-D215A390","P-1-D215A400","P-1-D216A260","P-1-D216A270","P-1-D216A280","P-1-D216A290","P-1-D216A300","P-1-D216A310","P-1-D216A320","P-1-D216A330","P-1-D216A340","P-1-D216A350","P-1-D216A360","P-1-D216A370","P-1-D216A380","P-1-D216A390","P-1-D216A400","P-1-D217A260","P-1-D217A270","P-1-D217A280","P-1-D217A290","P-1-D217A300","P-1-D217A310","P-1-D217A320","P-1-D217A330","P-1-D217A340","P-1-D217A350","P-1-D217A360","P-1-D217A370","P-1-D217A380","P-1-D217A390","P-1-D217A400","P-1-D218A260","P-1-D218A270","P-1-D218A280","P-1-D218A290","P-1-D218A300","P-1-D218A310","P-1-D218A320","P-1-D218A330","P-1-D218A340","P-1-D218A350","P-1-D218A360","P-1-D218A370","P-1-D218A380","P-1-D218A390","P-1-D218A400"]);
+    const D_1_3_SET = new Set(["P-1-D201A420","P-1-D201A430","P-1-D201A440","P-1-D201A450","P-1-D201A460","P-1-D201A470","P-1-D201A480","P-1-D201A490","P-1-D201A500","P-1-D201A510","P-1-D201A520","P-1-D202A430","P-1-D202A440","P-1-D202A450","P-1-D202A460","P-1-D202A470","P-1-D202A480","P-1-D202A490","P-1-D202A500","P-1-D202A510","P-1-D202A520","P-1-D203A420","P-1-D203A430","P-1-D203A440","P-1-D203A450","P-1-D203A460","P-1-D203A470","P-1-D203A480","P-1-D203A490","P-1-D203A500","P-1-D203A510","P-1-D203A520","P-1-D204A420","P-1-D204A430","P-1-D204A440","P-1-D204A450","P-1-D204A460","P-1-D204A470","P-1-D204A480","P-1-D204A490","P-1-D204A500","P-1-D204A510","P-1-D204A520","P-1-D205A420","P-1-D205A430","P-1-D205A440","P-1-D205A450","P-1-D205A460","P-1-D205A470","P-1-D205A480","P-1-D205A490","P-1-D205A500","P-1-D205A510","P-1-D205A520","P-1-D206A420","P-1-D206A430","P-1-D206A440","P-1-D206A450","P-1-D206A460","P-1-D206A470","P-1-D206A480","P-1-D206A490","P-1-D206A500","P-1-D206A510","P-1-D206A520","P-1-D207A420","P-1-D207A430","P-1-D207A440","P-1-D207A450","P-1-D207A460","P-1-D207A470","P-1-D207A480","P-1-D207A490","P-1-D207A500","P-1-D207A510","P-1-D207A520","P-1-D208A420","P-1-D208A430","P-1-D208A440","P-1-D208A450","P-1-D208A460","P-1-D208A470","P-1-D208A480","P-1-D208A490","P-1-D208A500","P-1-D208A510","P-1-D208A520","P-1-D209A420","P-1-D209A430","P-1-D209A440","P-1-D209A450","P-1-D209A460","P-1-D209A470","P-1-D209A480","P-1-D209A490","P-1-D209A500","P-1-D209A510","P-1-D209A520","P-1-D210A420","P-1-D210A430","P-1-D210A440","P-1-D210A450","P-1-D210A460","P-1-D210A470","P-1-D210A480","P-1-D210A490","P-1-D210A500","P-1-D210A510","P-1-D210A520","P-1-D211A420","P-1-D211A430","P-1-D211A440","P-1-D211A450","P-1-D211A460","P-1-D211A470","P-1-D211A480","P-1-D211A490","P-1-D211A500","P-1-D211A510","P-1-D212A420","P-1-D212A430","P-1-D212A440","P-1-D212A450","P-1-D212A460","P-1-D212A470","P-1-D212A480","P-1-D212A490","P-1-D212A500","P-1-D212A510","P-1-D213A420","P-1-D213A430","P-1-D213A440","P-1-D213A450","P-1-D213A460","P-1-D213A470","P-1-D213A480","P-1-D213A490","P-1-D213A500","P-1-D213A510","P-1-D213A520","P-1-D214A420","P-1-D214A430","P-1-D214A440","P-1-D214A450","P-1-D214A460","P-1-D214A470","P-1-D214A480","P-1-D214A490","P-1-D214A500","P-1-D214A510","P-1-D214A520","P-1-D215A420","P-1-D215A430","P-1-D215A440","P-1-D215A450","P-1-D215A460","P-1-D215A470","P-1-D215A480","P-1-D215A490","P-1-D215A500","P-1-D215A510","P-1-D215A520","P-1-D216A420","P-1-D216A430","P-1-D216A440","P-1-D216A450","P-1-D216A460","P-1-D216A470","P-1-D216A480","P-1-D216A490","P-1-D216A500","P-1-D216A510","P-1-D216A520","P-1-D217A420","P-1-D217A430","P-1-D217A440","P-1-D217A450","P-1-D217A460","P-1-D217A470","P-1-D217A480","P-1-D217A490","P-1-D217A500","P-1-D217A510","P-1-D217A520","P-1-D218A420","P-1-D218A430","P-1-D218A440","P-1-D218A450","P-1-D218A460","P-1-D218A470","P-1-D218A480","P-1-D218A490","P-1-D218A500","P-1-D218A510","P-1-D218A520"]);
+    const D_1_4_SET = new Set(["P-1-D219A200","P-1-D219A210","P-1-D219A220","P-1-D219A230","P-1-D219A240","P-1-D219A260","P-1-D219A270","P-1-D219A280","P-1-D219A290","P-1-D219A300","P-1-D219A310","P-1-D219A320","P-1-D219A330","P-1-D219A340","P-1-D219A350","P-1-D219A360","P-1-D219A370","P-1-D219A380","P-1-D219A390","P-1-D219A400","P-1-D219A420","P-1-D219A430","P-1-D219A440","P-1-D219A450","P-1-D219A460","P-1-D219A470","P-1-D219A480","P-1-D219A490","P-1-D219A500","P-1-D219A510","P-1-D219A520","P-1-D220A200","P-1-D220A210","P-1-D220A220","P-1-D220A230","P-1-D220A240","P-1-D220A260","P-1-D220A270","P-1-D220A280","P-1-D220A290","P-1-D220A300","P-1-D220A310","P-1-D220A320","P-1-D220A330","P-1-D220A340","P-1-D220A350","P-1-D220A360","P-1-D220A370","P-1-D220A380","P-1-D220A390","P-1-D220A400","P-1-D220A420","P-1-D220A430","P-1-D220A440","P-1-D220A450","P-1-D220A460","P-1-D220A470","P-1-D220A480","P-1-D220A490","P-1-D220A500","P-1-D220A510","P-1-D220A520","P-1-D221A200","P-1-D221A210","P-1-D221A220","P-1-D221A230","P-1-D221A240","P-1-D221A260","P-1-D221A270","P-1-D221A280","P-1-D221A290","P-1-D221A300","P-1-D221A310","P-1-D221A320","P-1-D221A330","P-1-D221A340","P-1-D221A350","P-1-D221A360","P-1-D221A370","P-1-D221A380","P-1-D221A390","P-1-D221A400","P-1-D221A420","P-1-D221A430","P-1-D221A440","P-1-D221A450","P-1-D221A460","P-1-D221A470","P-1-D221A480","P-1-D221A490","P-1-D221A500","P-1-D221A510","P-1-D221A520","P-1-D222A200","P-1-D222A210","P-1-D222A220","P-1-D222A230","P-1-D222A240","P-1-D222A260","P-1-D222A270","P-1-D222A280","P-1-D222A290","P-1-D222A300","P-1-D222A310","P-1-D222A320","P-1-D222A330","P-1-D222A340","P-1-D222A350","P-1-D222A360","P-1-D222A370","P-1-D222A380","P-1-D222A390","P-1-D222A400","P-1-D222A420","P-1-D222A430","P-1-D222A440","P-1-D222A450","P-1-D222A460","P-1-D222A470","P-1-D222A480","P-1-D222A490","P-1-D222A500","P-1-D222A510","P-1-D222A520","P-1-D223A200","P-1-D223A210","P-1-D223A220","P-1-D223A230","P-1-D223A240","P-1-D223A260","P-1-D223A270","P-1-D223A280","P-1-D223A290","P-1-D223A300","P-1-D223A310","P-1-D223A320","P-1-D223A330","P-1-D223A340","P-1-D223A350","P-1-D223A360","P-1-D223A370","P-1-D223A380","P-1-D223A390","P-1-D223A400","P-1-D223A420","P-1-D223A430","P-1-D223A440","P-1-D223A450","P-1-D223A460","P-1-D223A470","P-1-D223A480","P-1-D223A490","P-1-D223A500","P-1-D223A510","P-1-D223A520","P-1-D224A200","P-1-D224A210","P-1-D224A220","P-1-D224A230","P-1-D224A240","P-1-D224A260","P-1-D224A270","P-1-D224A280","P-1-D224A290","P-1-D224A300","P-1-D224A310","P-1-D224A320","P-1-D224A330","P-1-D224A340","P-1-D224A350","P-1-D224A360","P-1-D224A370","P-1-D224A380","P-1-D224A390","P-1-D224A400","P-1-D224A420","P-1-D224A430","P-1-D224A440","P-1-D224A450","P-1-D224A460","P-1-D224A470","P-1-D224A480","P-1-D224A490","P-1-D225A200","P-1-D225A210","P-1-D225A220","P-1-D225A230","P-1-D225A240","P-1-D225A260","P-1-D225A270","P-1-D225A280","P-1-D225A290","P-1-D225A300","P-1-D225A310","P-1-D225A320","P-1-D225A330","P-1-D225A340","P-1-D225A350","P-1-D225A360","P-1-D225A370","P-1-D225A380","P-1-D225A390","P-1-D225A400","P-1-D225A420","P-1-D225A430","P-1-D225A440","P-1-D225A450","P-1-D225A460","P-1-D225A470","P-1-D225A480","P-1-D225A490","P-1-D226A200","P-1-D226A210","P-1-D226A220","P-1-D226A230","P-1-D226A250","P-1-D226A260","P-1-D226A270","P-1-D226A280","P-1-D226A290","P-1-D226A300","P-1-D226A310","P-1-D226A320","P-1-D226A330","P-1-D226A340","P-1-D226A360","P-1-D226A370","P-1-D226A380","P-1-D226A390","P-1-D226A400","P-1-D226A410","P-1-D226A430","P-1-D226A440","P-1-D226A450","P-1-D226A470","P-1-D226A480","P-1-D226A490","P-1-D226A500","P-1-D226A510","P-1-D226A520"]);
+
+    let rawData = [];
+    let ppChartInstance = null;
+    let zoneChartInstance = null;
+    let selectedProcessPathFilter = null;
+    
+    const PATH_GROUPS = ["SINGLE", "MULTI", "SINGLE NONSORT", "MULTI NONSORT", "GIFT SINGLE", "GIFT MULTI"];
+    const ZONE_HEADERS = ["A-HRV", "A", "D", "E"];
+    const FLOOR_HEADERS = ["A-HRV", "1-A", "2-A", "3-A", "4-A", "1-D", "1-E"];
+    const CORRIDOR_HEADERS = ["A-HRV", "A-1.1", "A-1.2", "A-1.3", "A-2.1", "A-2.2", "A-2.3", "A-3.1", "A-3.2", "A-3.3", "A-4.1", "A-4.2", "A-4.3", "D-1.1", "D-1.2", "D-1.3", "D-1.4", "E"];
+    
+    const COL_ZONE = 4;   
+    const COL_PP = 9;      
+    const COL_QTY = 12;   
+    const COL_BATCH = 11; 
+    const COL_CPT = 3;
+
+    function setCurrentTimeToInput() {
+        const now = new Date();
+        let offset = now.getTimezoneOffset();
+        let localNow = new Date(now.getTime() - (offset * 60 * 1000));
+        document.getElementById('calculationStartTime').value = localNow.toISOString().slice(0, 16);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        setCurrentTimeToInput();
+    });
+
+    function toggleCard(contentId, headerEl) {
+        const content = document.getElementById(contentId);
+        content.classList.toggle('collapsed');
+        headerEl.classList.toggle('collapsed');
+    }
+
+    function formatHoursToReadable(hoursValue) {
+        if (!hoursValue || hoursValue <= 0 || isNaN(hoursValue)) return "0 saat 0 dakika";
+        let totalMinutes = Math.round(hoursValue * 60);
+        let hrs = Math.floor(totalMinutes / 60);
+        let mins = totalMinutes % 60;
+        return `${hrs} saat ${mins} dakika`;
+    }
+
+    const dropZone = document.getElementById('dropZone');
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if(e.dataTransfer.files.length) {
+            document.getElementById('csvFile').files = e.dataTransfer.files;
+            handleFile({ target: { files: e.dataTransfer.files } });
+        }
+    });
+
+    const themeToggle = document.getElementById('themeToggle');
+    themeToggle.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const targetTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', targetTheme);
+        if(rawData.length > 0) processData(rawData); 
+    });
+
+    document.querySelectorAll('.clickable-row').forEach(row => {
+        row.addEventListener('click', function() {
+            const clickedPath = this.getAttribute('data-path');
+            if (selectedProcessPathFilter === clickedPath) {
+                selectedProcessPathFilter = null;
+                this.classList.remove('selected-filter');
+            } else {
+                document.querySelectorAll('.clickable-row').forEach(r => r.classList.remove('selected-filter'));
+                selectedProcessPathFilter = clickedPath;
+                this.classList.add('selected-filter');
+            }
+            processData(rawData);
+        });
+    });
+
+    document.getElementById('csvFile').addEventListener('change', handleFile);
+    
+    document.getElementById('processBtn').addEventListener('click', () => {
+        setCurrentTimeToInput(); 
+        processData(rawData);
+    });
+
+    function handleFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        document.getElementById('uploadLabel').innerText = "📁 " + file.name;
+        const reader = new FileReader();
+        reader.onload = function(evt) { parseCSV(evt.target.result); };
+        reader.readAsText(file, 'UTF-8');
+    }
+
+    function parseCSV(text) {
+        const lines = text.split(/\r?\n/);
+        rawData = [];
+        let minDate = null;
+        let maxDate = null;
+        for(let i = 1; i < lines.length; i++) {
+            let line = lines[i].trim();
+            if(!line) continue;
+            
+            let row = [];
+            let inQuotes = false;
+            let currentCell = "";
+            for (let j = 0; j < line.length; j++) {
+                let char = line[j];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    row.push(currentCell.trim());
+                    currentCell = "";
+                } else {
+                    currentCell += char;
+                }
+            }
+            row.push(currentCell.trim());
+            
+            let cleanRow = row.map(cell => {
+                if (cell.startsWith('"') && cell.endsWith('"')) {
+                    cell = cell.substring(1, cell.length - 1);
+                }
+                return cell.replace(/""/g, '"').trim();
+            });
+            rawData.push(cleanRow);
+
+            if (cleanRow[COL_CPT]) {
+                let timeParsed = Date.parse(cleanRow[COL_CPT].replace(/"/g, ''));
+                if(!isNaN(timeParsed)){
+                    if(!minDate || timeParsed < minDate) minDate = timeParsed;
+                    if(!maxDate || timeParsed > maxDate) maxDate = timeParsed;
+                 }
+            }
+        }
+
+        if (minDate && maxDate) {
+            const formatForInput = (timestamp) => {
+                let d = new Date(timestamp);
+                let offset = d.getTimezoneOffset();
+                d = new Date(d.getTime() - (offset * 60 * 1000));
+                return d.toISOString().slice(0, 16);
+            };
+            document.getElementById('filterStartDate').value = formatForInput(minDate);
+            document.getElementById('filterEndDate').value = formatForInput(maxDate);
+        }
+
+        setCurrentTimeToInput();
+        selectedProcessPathFilter = null;
+        document.querySelectorAll('.clickable-row').forEach(r => r.classList.remove('selected-filter'));
+        processData(rawData);
+    }
+
+    function getGroupKey(ppStr) {
+        let clean = ppStr.trim().toUpperCase();
+        if(clean.includes("GIFTSINGLE") || (clean.includes("GIFT") && clean.includes("SINGLE"))) return "GIFT SINGLE";
+        if(clean.includes("GIFTMULTI") || (clean.includes("GIFT") && clean.includes("MULTI"))) return "GIFT MULTI";
+        if(clean.includes("NONSORT")) {
+            if (clean.includes("MULTI")) return "MULTI NONSORT";
+            return "SINGLE NONSORT"; 
+        }
+        if(clean.includes("MULTISZONE") || clean.includes("MULTIMEDIUM") || clean === "PPMULTISZONE" || clean.endsWith("MULTI")) return "MULTI";
+        if(clean.includes("SINGLE") || clean === "PPSINGLES") return "SINGLE";
+        return "SINGLE"; 
+    }
+
+    function extractLocationDetails(locStr) {
+        let clean = locStr.toUpperCase().trim();
+        let parts = clean.split('-');
+        if(parts.length >= 3) {
+            let floorNum = parts[1].trim();
+            let remaining = parts[2].trim();      
+            let zoneLetter = remaining.charAt(0);
+            
+            let rackNum = parseInt(remaining.substring(1, 4));
+            if (floorNum === "1" && zoneLetter === "A") {
+                if (!isNaN(rackNum) && rackNum >= 200 && rackNum <= 211) {
+                    return { zone: "A-HRV", floor: "A-HRV", corridor: "A-HRV" };
+                }
+            }
+
+            let zone = "A";
+            if(ZONE_HEADERS.includes(zoneLetter)) {
+                zone = zoneLetter;
+            }
+            
+            let floor = "1-A";
+            if (zone === "A") {
+                if (["1","2","3","4"].includes(floorNum)) floor = floorNum + "-A";
+            } else {
+                floor = "1-" + zone;
+            }
+            
+            if (!FLOOR_HEADERS.includes(floor)) floor = "1-A";
+            
+            let corridor = "A-1.1";
+            if (zone === "A") {
+                if (!isNaN(rackNum)) {
+                    if (floorNum === "1") {
+                        if (rackNum >= 245 && rackNum <= 289) corridor = "A-1.2";
+                        else if (rackNum >= 290 && rackNum <= 321) corridor = "A-1.3";
+                        else corridor = "A-1.1"; 
+                    } else if (["2", "3", "4"].includes(floorNum)) {
+                        if (rackNum >= 245 && rackNum <= 289) corridor = `A-${floorNum}.2`;
+                        else if (rackNum >= 290 && rackNum <= 321) corridor = `A-${floorNum}.3`;
+                        else corridor = `A-${floorNum}.1`; 
+                    }
+                } else {
+                    corridor = `A-${floorNum}.1`; 
+                }
+            } else if (zone === "D") {
+                // D KORİDOR TESPİTİ
+                let prefix12 = clean.substring(0, 12);
+                if (D_1_1_SET.has(prefix12)) corridor = "D-1.1";
+                else if (D_1_2_SET.has(prefix12)) corridor = "D-1.2";
+                else if (D_1_3_SET.has(prefix12)) corridor = "D-1.3";
+                else if (D_1_4_SET.has(prefix12)) corridor = "D-1.4";
+                else corridor = "D-1.1"; // Varsayılan veya tanımlanmamış ise 1.1'e atsın
+            } else if (zone === "E") {
+                corridor = "E";
+            }
+            
+            if (!CORRIDOR_HEADERS.includes(corridor)) {
+                if (zone === "A") corridor = "A-1.1";
+                else if (zone === "D") corridor = "D-1.1";
+                else if (zone === "E") corridor = "E";
+                else corridor = "A-1.1";
+            }
+            
+            return { zone, floor, corridor };
+        }
+        return { zone: "A", floor: "1-A", corridor: "A-1.1" };
+    }
+
+    function getFloorFromCorridor(c) {
+        if (c === "A-HRV") return "A-HRV";
+        if (c.startsWith("A-")) {
+            let floorNum = c.split('-')[1].split('.')[0];
+            return floorNum + "-A";
+        }
+        if (c.startsWith("D-")) return "1-D"; // Tüm D koridorları 1-D katındadır
+        if (c === "E") return "1-E";
+        return "1-A";
+    }
+
+    function getPph(zone, pathGroup) {
+        let z = (zone === 'A-HRV') ? 'A' : zone; 
+        let pType = "SGL";
+        if (pathGroup.includes("MULTI NONSORT")) pType = "M_NS";
+        else if (pathGroup.includes("SINGLE NONSORT")) pType = "S_NS";
+        else if (pathGroup.includes("MULTI")) pType = "MLT";
+        else if (pathGroup.includes("SINGLE")) pType = "SGL";
+
+        let inputId = `pph_${z}_${pType}`;
+        let inputEl = document.getElementById(inputId);
+        let val = inputEl ? parseFloat(inputEl.value) : 1;
+        return isNaN(val) || val <= 0 ? 1 : val;
+    }
+
+    function calculateRawDemand(pKey) {
+        let demand = 0;
+        let uA = zoneMatrix[pKey]["A-HRV"] + zoneMatrix[pKey]["A"];
+        demand += Math.ceil(uA / getPph("A", pKey));
+        
+        let uD = zoneMatrix[pKey]["D"];
+        demand += Math.ceil(uD / getPph("D", pKey));
+        
+        let uE = zoneMatrix[pKey]["E"];
+        demand += Math.ceil(uE / getPph("E", pKey));
+
+        return demand;
+    }
+
+    function generateAssignmentsTemplate(pKey, katsayi) {
+        let assignments = [];
+        let totalA = zoneMatrix[pKey]["A-HRV"] + zoneMatrix[pKey]["A"];
+        if (totalA > 0) {
+            let rawA = totalA / getPph("A", pKey);
+            let finalA = Math.round(Math.ceil(rawA) * katsayi) || (katsayi > 0 ? 1 : 0);
+            for(let i=0; i<finalA; i++) {
+                assignments.push({ isFixedZone: true, baseZonesOrdered: [["A-HRV", "A"]], baseLabel: "A (Esnek)" });
+            }
+        }
+
+        let totalD = zoneMatrix[pKey]["D"];
+        if (totalD > 0) {
+            let rawD = totalD / getPph("D", pKey);
+            let finalD = Math.round(Math.ceil(rawD) * katsayi) || (katsayi > 0 ? 1 : 0);
+            for(let i=0; i<finalD; i++) {
+                assignments.push({ isFixedZone: true, baseZonesOrdered: [["D"]], baseLabel: "D" });
+            }
+        }
+
+        let totalE = zoneMatrix[pKey]["E"];
+        if (totalE > 0) {
+            let rawE = totalE / getPph("E", pKey);
+            let finalE = Math.round(Math.ceil(rawE) * katsayi) || (katsayi > 0 ? 1 : 0);
+            for(let i=0; i<finalE; i++) {
+                assignments.push({ isFixedZone: true, baseZonesOrdered: [["E"]], baseLabel: "E" });
+            }
+        }
+        return assignments;
+    }
+
+    function updateCharts(ppTotals, zoneTotals) {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const textColor = isDark ? '#f8fafc' : '#0f172a';
+        const gridColor = isDark ? '#334155' : '#e2e8f0';
+        let chartPPTotals = { ...ppTotals };
+        let chartZoneTotals = { ...zoneTotals };
+        if (selectedProcessPathFilter) {
+            PATH_GROUPS.forEach(p => { if(p !== selectedProcessPathFilter) chartPPTotals[p] = 0; });
+        }
+
+        if(ppChartInstance) ppChartInstance.destroy();
+        const ctxPP = document.getElementById('ppChart').getContext('2d');
+        ppChartInstance = new Chart(ctxPP, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(chartPPTotals),
+                datasets: [{
+                    data: Object.values(chartPPTotals),
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#6366f1']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: textColor } },
+                    title: { display: true, text: 'Process Path Dağılımı', color: textColor, font: { size: 14, weight: 'bold' } }
+                }
+            }
+        });
+
+        if(zoneChartInstance) zoneChartInstance.destroy();
+        const ctxZone = document.getElementById('zoneChart').getContext('2d');
+        zoneChartInstance = new Chart(ctxZone, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(chartZoneTotals),
+                datasets: [{
+                    label: 'Toplam İş Adeti',
+                    data: Object.values(chartZoneTotals),
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Bölge Bazlı İş Yükü (Zone)', color: textColor, font: { size: 14, weight: 'bold' } }
+                },
+                scales: {
+                    x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                    y: { ticks: { color: textColor }, grid: { color: gridColor } }
+                }
+            }
+        });
+    }
+
+    let zoneMatrix = {}; 
+    let floorMatrix = {};
+    let corridorMatrix = {};
+    let cptData = {};
+
+    function processData(data) {
+        if(data.length === 0) return;
+
+        const mevcutPersonel = parseFloat(document.getElementById('mevcutPersonel').value) || 0;
+        let startInput = document.getElementById('filterStartDate').value;
+        let endInput = document.getElementById('filterEndDate').value;
+        let userStartTime = startInput ? Date.parse(startInput) : 0;
+        let userEndTime = endInput ? Date.parse(endInput) : Infinity;
+
+        let ppTotals = {}; 
+        PATH_GROUPS.forEach(p => ppTotals[p] = 0);
+        let globalZoneTotals = {}; 
+        ZONE_HEADERS.forEach(z => globalZoneTotals[z] = 0);
+        
+        cptData = {};
+        zoneMatrix = {};
+        floorMatrix = {};
+        corridorMatrix = {};
+        
+        PATH_GROUPS.forEach(p => {
+            zoneMatrix[p] = {}; ZONE_HEADERS.forEach(z => zoneMatrix[p][z] = 0);
+            floorMatrix[p] = {}; FLOOR_HEADERS.forEach(f => floorMatrix[p][f] = 0);
+            corridorMatrix[p] = {}; CORRIDOR_HEADERS.forEach(c => corridorMatrix[p][c] = 0);
+        });
+
+        data.forEach(row => {
+            if(row.length <= Math.max(COL_ZONE, COL_PP, COL_QTY, COL_CPT)) return;
+            
+            let rawPP = row[COL_PP] || "";
+            let rawLoc = row[COL_ZONE] || "";
+            let qty = parseFloat(row[COL_QTY]) || 0;
+            let rawCPT = row[COL_CPT] || "";
+            
+            if(!rawPP || !rawLoc) return;
+
+            let rowCptTime = Date.parse(rawCPT.replace(/"/g, ''));
+            if (!isNaN(rowCptTime)) {
+                if (rowCptTime < userStartTime || rowCptTime > userEndTime) return; 
+                
+                if (!cptData[rowCptTime]) {
+                    cptData[rowCptTime] = {};
+                    PATH_GROUPS.forEach(p => {
+                        cptData[rowCptTime][p] = { total: 0, zones: {} };
+                        ZONE_HEADERS.forEach(z => cptData[rowCptTime][p].zones[z] = 0);
+                    });
+                }
+            }
+
+            let group = getGroupKey(rawPP);
+            let locInfo = extractLocationDetails(rawLoc);
+
+            ppTotals[group] += qty;
+            zoneMatrix[group][locInfo.zone] += qty;
+            floorMatrix[group][locInfo.floor] += qty;
+            corridorMatrix[group][locInfo.corridor] += qty; 
+
+            if (!isNaN(rowCptTime) && cptData[rowCptTime] && cptData[rowCptTime][group]) {
+                 cptData[rowCptTime][group].total += qty;
+                 cptData[rowCptTime][group].zones[locInfo.zone] += qty;
+            }
+
+            if (selectedProcessPathFilter && group !== selectedProcessPathFilter) return;
+            globalZoneTotals[locInfo.zone] += qty;
+        });
+
+        updateCharts(ppTotals, globalZoneTotals);
+        PATH_GROUPS.forEach(p => {
+            const rowEl = document.querySelector(`.clickable-row[data-path="${p}"]`);
+            if(rowEl) {
+                rowEl.querySelector('.highlight-cell').innerText = ppTotals[p].toLocaleString();
+            }
+        });
+
+        let zoneHTML = "";
+        PATH_GROUPS.forEach(p => {
+            let isDimmed = selectedProcessPathFilter && selectedProcessPathFilter !== p;
+            zoneHTML += `
+                <table class="info-table" style="opacity: ${isDimmed ? '0.2' : '1'}; margin-bottom:10px;">
+                    <thead>
+                        <tr style="background:var(--excel-section);"><th colspan="${ZONE_HEADERS.length}" style="font-size:11px; text-align:left; padding-left:5px;">${p}</th></tr>
+                        <tr> ${ZONE_HEADERS.map(z => `<th style="width:${100/ZONE_HEADERS.length}%; font-size:10px;">${z}</th>`).join('')} </tr>
+                    </thead>
+                    <tbody>
+                        <tr> ${ZONE_HEADERS.map(z => { let val = zoneMatrix[p][z]; return `<td style="${val > 0 ? 'background:var(--highlight); font-weight:bold;' : ''}">${val}</td>`; }).join('')} </tr>
+                    </tbody>
+                </table>`;
+        });
+        document.getElementById('zoneTablesWrapper').innerHTML = zoneHTML;
+
+        let floorHTML = `<thead><tr><th style="text-align:left; width:120px;">Process Path \\ Kat</th>${FLOOR_HEADERS.map(f => `<th style="font-size:10px;">${f}</th>`).join('')}</tr></thead><tbody>`;
+        PATH_GROUPS.forEach(p => {
+            let isDimmed = selectedProcessPathFilter && selectedProcessPathFilter !== p;
+            floorHTML += `<tr style="opacity: ${isDimmed ? '0.2' : '1'}"><td style="font-weight:bold; text-align:left; background:var(--table-header);">${p}</td>${FLOOR_HEADERS.map(f => { let val = floorMatrix[p][f]; return `<td style="${val > 0 ? 'background:rgba(16, 185, 129, 0.15); font-weight:bold;' : ''}">${val}</td>`; }).join('')}</tr>`;
+        });
+        floorHTML += "</tbody>";
+        document.getElementById('floorTable').innerHTML = floorHTML;
+
+        let corridorHTML = `<thead><tr><th style="text-align:left; width:120px; font-size:11px;">Process Path \\ Koridor</th>${CORRIDOR_HEADERS.map(c => `<th style="font-size:9px; padding:6px 4px;">${c}</th>`).join('')}</tr></thead><tbody>`;
+        PATH_GROUPS.forEach(p => {
+            let isDimmed = selectedProcessPathFilter && selectedProcessPathFilter !== p;
+            corridorHTML += `<tr style="opacity: ${isDimmed ? '0.2' : '1'}"><td style="font-weight:bold; text-align:left; font-size:11px; background:var(--table-header);">${p}</td>${CORRIDOR_HEADERS.map(c => { 
+                let val = corridorMatrix[p][c]; 
+                return `<td style="${val > 0 ? 'background:rgba(59, 130, 246, 0.15); font-weight:bold;' : ''}">${val}</td>`; 
+            }).join('')}</tr>`;
+        });
+        corridorHTML += "</tbody>";
+        document.getElementById('corridorTable').innerHTML = corridorHTML;
+
+        // KAPASİTE YÖNETİMİ 
+        let anaIhtiyacToplam = 0;
+        const corePaths = ["SINGLE", "MULTI", "SINGLE NONSORT", "MULTI NONSORT"];
+        corePaths.forEach(p => anaIhtiyacToplam += calculateRawDemand(p));
+
+        let katsayiAna = 1;
+        const alertContainer = document.getElementById('alertContainer');
+        if (anaIhtiyacToplam > mevcutPersonel && mevcutPersonel > 0) {
+            katsayiAna = mevcutPersonel / anaIhtiyacToplam;
+            alertContainer.innerHTML = `⚠️ <strong>Kapasite Sınırlandı:</strong> Süreçler mevcut personele göre <strong>${katsayiAna.toFixed(4)}</strong> çarpanıyla optimize edildi.`;
+            alertContainer.style.display = "block";
+        } else {
+            alertContainer.style.display = "none";
+        }
+
+        let templatesObj = {};
+        corePaths.forEach(p => {
+            templatesObj[p] = generateAssignmentsTemplate(p, katsayiAna);
+        });
+
+        // ETA HESAPLAMA SİMÜLASYONU
+        document.getElementById('kpiPanel').style.display = "grid";
+        let totalWorkHours = 0;
+        
+        PATH_GROUPS.forEach(p => {
+            ZONE_HEADERS.forEach(z => {
+                let units = zoneMatrix[p][z];
+                if (units > 0) {
+                    totalWorkHours += units / getPph(z, p);
+                }
+            });
+        });
+
+        let etaHours = mevcutPersonel > 0 ? (totalWorkHours / mevcutPersonel) : 0;
+        document.getElementById('kpiEtaBox').innerHTML = `
+            <strong>⏱️ OPERASYONEL SÜRE SİMÜLASYONU (ETA)</strong>
+            Toplam iş yükü mevcut
+            <strong>${mevcutPersonel}</strong> personel gücü ve girilen bölgesel PPH kapasiteleriyle yaklaşık
+            <span style="font-size:15px; font-weight:bold; color:var(--primary); display:block; margin-top:5px;">🕒 ${formatHoursToReadable(etaHours)}</span>
+            sürecektir.
+        `;
+
+        // BACKLOG SİMÜLASYONU
+        let calcStartInput = document.getElementById('calculationStartTime').value;
+        let currentTime = calcStartInput ? Date.parse(calcStartInput) : Date.now(); 
+        let simClock = currentTime; 
+        let backlogResults = {};
+        let totalBacklogSystemWide = 0;
+
+        let sortedCpts = Object.keys(cptData).map(Number).sort((a, b) => a - b);
+
+        sortedCpts.forEach(cpt => {
+            let targetTime = cpt - (15 * 60 * 1000); 
+            let totalWh_Cpt = 0;
+            let pathUnits = {};
+
+            PATH_GROUPS.forEach(p => {
+                let tQty = cptData[cpt][p].total;
+                let wh = 0;
+                ZONE_HEADERS.forEach(z => {
+                    let units = cptData[cpt][p].zones[z];
+                    if (units > 0) wh += units / getPph(z, p);
+                });
+
+                pathUnits[p] = tQty;
+                totalWh_Cpt += wh;
+            });
+
+            let hoursNeeded = mevcutPersonel > 0 ? (totalWh_Cpt / mevcutPersonel) : 0;
+            let startJobClock = simClock;
+            let endJobClock = simClock + (hoursNeeded * 3600000); 
+
+            backlogResults[cpt] = {};
+            let ratio = 0;
+
+            if (totalWh_Cpt > 0) {
+                if (endJobClock <= targetTime) ratio = 0;
+                else if (startJobClock >= targetTime) ratio = 1.0;
+                else ratio = (endJobClock - targetTime) / (endJobClock - startJobClock);
+            }
+
+            PATH_GROUPS.forEach(p => {
+                let bUnits = Math.round(pathUnits[p] * ratio);
+                backlogResults[cpt][p] = bUnits;
+                totalBacklogSystemWide += bUnits;
+            });
+
+            simClock = endJobClock;
+        });
+
+        let backlogBoxContent = `<strong>🚨 ZAMAN ÇİZELGELİ KALAN İŞ (BACKLOG) TABLOSU</strong>`;
+        let hesaplamaSaatiStr = new Date(currentTime).toLocaleString('tr-TR', { day:'2-digit', month:'short', hour: '2-digit', minute:'2-digit' });
+
+        if (totalBacklogSystemWide <= 0) {
+             backlogBoxContent += `<div style="margin-top:10px; color:#166534;">✅ Güncelleme saati olan <strong>${hesaplamaSaatiStr}</strong> itibarıyla mevcut personel gücüyle tüm işler CPT hedeflerinden önce bitiyor. Backlog bulunmamaktadır.</div>`;
+        } else {
+             backlogBoxContent += `<div style="margin-bottom:8px; font-size:12px;">Güncelleme saati olan <strong>${hesaplamaSaatiStr}</strong> baz alınarak simülasyon yapılmıştır. Toplam Backlog: <strong>${totalBacklogSystemWide.toLocaleString()} adet</strong>.</div>`;
+             backlogBoxContent += `<div style="overflow-x: auto; max-width: 100%; border: 1px solid var(--border); border-radius: 6px;">
+                                     <table class="backlog-table" style="min-width: max-content; margin-top: 0; border: none;">
+                                         <thead>
+                                             <tr>
+                                                 <th style="position: sticky; left: 0; z-index: 2; background: var(--table-header); border-right: 2px solid var(--border);">Process Path</th>`;
+
+             sortedCpts.forEach(cpt => {
+                 let cptDate = new Date(cpt);
+                 let dayMonth = cptDate.toLocaleString('tr-TR', { day:'2-digit', month:'short' });
+                 let timeStr = cptDate.toLocaleString('tr-TR', { hour:'2-digit', minute:'2-digit' });
+                 backlogBoxContent += `<th><div style="font-size:10px; color:var(--text-muted);">${dayMonth}</div><div>${timeStr}</div></th>`;
+             });
+             backlogBoxContent += `</tr></thead><tbody>`;
+
+             PATH_GROUPS.forEach(p => {
+                 backlogBoxContent += `<tr><td style="font-weight:bold; background:var(--background); position: sticky; left: 0; border-right: 2px solid var(--border);">${p}</td>`;
+                 sortedCpts.forEach(cpt => {
+                     let val = backlogResults[cpt][p];
+                     let totalInCpt = cptData[cpt] && cptData[cpt][p] ? cptData[cpt][p].total : 0;
+                     
+                     if (totalInCpt === 0) backlogBoxContent += `<td style="color:var(--text-muted); font-size:14px;">-</td>`;
+                     else if (val > 0) backlogBoxContent += `<td><div style="color:#991b1b; font-weight:bold; background:#fee2e2; padding:2px 4px; border-radius:3px; display:inline-block;">${val} ad.</div><div style="font-size:9px; color:var(--text-muted); margin-top:2px;">/ ${totalInCpt} iş</div></td>`;
+                     else backlogBoxContent += `<td><span style="color:#10b981; font-weight:bold; font-size:14px;">✔</span></td>`;
+                 });
+                 backlogBoxContent += `</tr>`;
+             });
+             backlogBoxContent += `</tbody></table></div>`;
+        }
+        document.getElementById('kpiBacklogBox').innerHTML = backlogBoxContent;
+
+        // AKILLI DAĞITIM MOTORU - BÖLGE/KAT/KORİDOR ENTEGRE YAPISI
+        function runSmartAllocationEngine(pKey, templates, kVal, isGift = false) {
+            if (!templates || templates.length === 0) {
+                return { floorHTML: "<div>0 Kişi</div>", zoneHTML: "<div>0 Kişi</div>", corridorHTML: "<div>0 Kişi</div>", count: 0 };
+            }
+
+            let corridorAdets = {};
+            CORRIDOR_HEADERS.forEach(c => { corridorAdets[c] = corridorMatrix[pKey][c]; });
+            
+            let floorLines = [];
+            let zoneLines = [];
+            let corridorLines = [];
+            let totalCount = 0;
+            
+            templates.forEach(person => {
+                let assignedCorridorsForThisPerson = [];
+                let totalAssignedQtyForThisPerson = 0;
+                let remainingHours = 1.0; 
+
+                for (let poolIndex = 0; poolIndex < person.baseZonesOrdered.length; poolIndex++) {
+                    if (remainingHours <= 0.01) break;
+                    let currentPoolSubZones = person.baseZonesOrdered[poolIndex];
+   
+                    let allowedCorridorsInThisPool = CORRIDOR_HEADERS.filter(c => {
+                        if (isGift) return true;
+                        return currentPoolSubZones.some(z => {
+                            if (z === "A-HRV") return c === "A-HRV";
+                            if (z === "A") return c.startsWith("A-") && c !== "A-HRV";
+                            if (z === "D") return c.startsWith("D-"); 
+                            return c === z; 
+                        });
+                    });
+
+                    let loopGuard = 0;
+                    while (remainingHours > 0.01 && loopGuard < 100) {
+                        loopGuard++;
+                        
+                        let validCorridorsWithQty = allowedCorridorsInThisPool
+                            .map(c => {
+                                let zName = c === "A-HRV" ? "A-HRV" : (c.startsWith("A-") ? "A" : (c.startsWith("D-") ? "D" : c));
+                                return { name: c, qty: corridorAdets[c] || 0, zone: zName };
+                            })
+                            .filter(c => c.qty > 0.05);
+
+                        if (validCorridorsWithQty.length === 0) break;
+                        
+                        validCorridorsWithQty.sort((a, b) => b.qty - a.qty);
+                        let targetCorridor = validCorridorsWithQty[0];
+                        
+                        let pphForThisZone = getPph(targetCorridor.zone, pKey);
+                        let maxQtyPersonCanTake = remainingHours * pphForThisZone;
+                        let qtyToTake = Math.min(maxQtyPersonCanTake, targetCorridor.qty);
+                        
+                        if (qtyToTake <= 0) break;
+
+                        corridorAdets[targetCorridor.name] -= qtyToTake;
+                        totalAssignedQtyForThisPerson += qtyToTake;
+                        
+                        let existing = assignedCorridorsForThisPerson.find(x => x.name === targetCorridor.name);
+                        if (existing) {
+                            existing.qty += qtyToTake;
+                        } else {
+                            assignedCorridorsForThisPerson.push({ name: targetCorridor.name, qty: qtyToTake, zone: targetCorridor.zone });
+                        }
+                        
+                        remainingHours -= (qtyToTake / pphForThisZone);
+                    }
+                }
+
+                let zoneSummary = {};
+                let floorSummary = {};
+                let corridorSummary = {};
+
+                assignedCorridorsForThisPerson.forEach(item => { 
+                    let zoneName = item.zone;
+                    let floorName = getFloorFromCorridor(item.name);
+                    
+                    zoneSummary[zoneName] = (zoneSummary[zoneName] || 0) + item.qty;
+                    floorSummary[floorName] = (floorSummary[floorName] || 0) + item.qty;
+                    corridorSummary[item.name] = (corridorSummary[item.name] || 0) + item.qty;
+                });
+                
+                // ---- BÖLGE (ZONE) ETİKETİ ----
+                let actualZonesList = Object.keys(zoneSummary).sort();
+                let actualZoneLabel = actualZonesList.join(" - ");
+                if (actualZonesList.length === 0) actualZoneLabel = person.baseLabel || "Belirsiz";
+                let isActuallyFixedZone = actualZonesList.length <= 1;
+                let zoneBadge = isGift ? '<span class="badge-gift">GIFT</span>' : (isActuallyFixedZone ? '<span class="badge-fixed">Sabit</span>' : '<span class="badge-flex">Esnek</span>');
+                zoneLines.push(`<div>1 Kişi (${actualZoneLabel}) ${zoneBadge}</div>`);
+                
+                // ---- KAT (FLOOR) ETİKETİ ----
+                let floorStr = "Kat Yok";
+                let floorQtyStr = "0.0";
+                let floorKeys = Object.keys(floorSummary).sort();
+                if (floorKeys.length > 0) {
+                    floorStr = floorKeys.join(" / ");
+                    floorQtyStr = Object.values(floorSummary).reduce((a, b) => a + b, 0).toFixed(1);
+                }
+                let isActuallyFixedFloor = floorKeys.length <= 1;
+                let floorBadge = isGift ? '<span class="badge-gift">GIFT</span>' : (isActuallyFixedFloor ? '<span class="badge-fixed">Sabit Kat</span>' : '<span class="badge-flex">Esnek Kat</span>');
+                floorLines.push(`<div>1 Kişi (${floorStr}) [${floorQtyStr} Adet] (${actualZoneLabel}) ${floorBadge}</div>`);
+
+                // ---- KORİDOR (CORRIDOR) ETİKETİ ----
+                let corridorStr = "Koridor Yok";
+                let corridorQtyStr = "0.0";
+                let corridorKeys = Object.keys(corridorSummary).sort();
+                if (corridorKeys.length > 0) {
+                    corridorStr = corridorKeys.join(" / ");
+                    corridorQtyStr = Object.values(corridorSummary).reduce((a, b) => a + b, 0).toFixed(1);
+                }
+                let isActuallyFixedCorridor = corridorKeys.length <= 1;
+                let corridorBadge = isGift ? '<span class="badge-gift">GIFT</span>' : (isActuallyFixedCorridor ? '<span class="badge-fixed">Sabit Kor.</span>' : '<span class="badge-flex">Esnek Kor.</span>');
+                corridorLines.push(`<div>1 Kişi (${corridorStr}) [${corridorQtyStr} Adet] (${actualZoneLabel}) ${corridorBadge}</div>`);
+
+                totalCount++;
+            });
+
+            return { 
+                floorHTML: floorLines.join(''), 
+                zoneHTML: zoneLines.join(''), 
+                corridorHTML: corridorLines.join(''),
+                count: totalCount 
+            };
+        }
+
+        let runResults = {};
+        corePaths.forEach(p => {
+            runResults[p] = runSmartAllocationEngine(p, templatesObj[p], 1);
+        });
+
+        let giftSingleUnits = Object.values(zoneMatrix["GIFT SINGLE"]).reduce((a,b)=>a+b, 0);
+        let giftSingleHC = giftSingleUnits > 0 ? Math.ceil(giftSingleUnits / getPph("A", "SINGLE")) : 0; 
+        let giftMultiUnits = Object.values(zoneMatrix["GIFT MULTI"]).reduce((a,b)=>a+b, 0);
+        let giftMultiHC = giftMultiUnits > 0 ? Math.ceil(giftMultiUnits / getPph("A", "MULTI")) : 0;     
+        
+        let giftSingleTemplates = Array.from({ length: giftSingleHC }, () => ({ baseZonesOrdered: [ZONE_HEADERS], baseLabel: "TÜM BÖLGELER" }));
+        let giftMultiTemplates = Array.from({ length: giftMultiHC }, () => ({ baseZonesOrdered: [ZONE_HEADERS], baseLabel: "TÜM BÖLGELER" }));
+        
+        runResults["GIFT SINGLE"] = runSmartAllocationEngine("GIFT SINGLE", giftSingleTemplates, 1, true);
+        runResults["GIFT MULTI"] = runSmartAllocationEngine("GIFT MULTI", giftMultiTemplates, 1, true);
+        
+        function groupZoneAssignments(html) {
+            const counts = {};
+            const badges = {};
+            const matches = html.matchAll(/<div>1 Kişi \((.*?)\)\s*(<span class="badge-[^"]+">.*?<\/span>)?<\/div>/g);
+
+            for (const m of matches) {
+                const zone = m[1].trim();
+                const badge = m[2] || "";
+                const key = zone + "||" + badge;
+
+                counts[key] = (counts[key] || 0) + 1;
+                badges[key] = { zone, badge };
+            }
+
+            return Object.keys(counts).map(key => {
+                return `<div>${counts[key]} Kişi (${badges[key].zone}) ${badges[key].badge}</div>`;
+            }).join('');
+        }
+
+        let f = selectedProcessPathFilter;
+        
+        document.getElementById('wfZoneGrid').innerHTML = PATH_GROUPS.map(p => `
+            <div class="wf-column-box ${f && f!==p ? 'dimmed':''}">
+                <div class="wf-column-header">${p}</div>
+                <div class="wf-column-body">${groupZoneAssignments(runResults[p].zoneHTML)}</div>
+                <div class="wf-total-row">TOTAL: ${runResults[p].count}</div>
+            </div>
+        `).join('');
+
+        document.getElementById('wfFloorGrid').innerHTML = PATH_GROUPS.map(p => `
+            <div class="wf-column-box ${f && f!==p ? 'dimmed':''}">
+                <div class="wf-column-header">${p} KAT</div>
+                <div class="wf-column-body">${runResults[p].floorHTML}</div>
+                <div class="wf-total-row">TOTAL: ${runResults[p].count}</div>
+            </div>
+        `).join('');
+        
+        document.getElementById('wfCorridorGrid').innerHTML = PATH_GROUPS.map(p => `
+            <div class="wf-column-box ${f && f!==p ? 'dimmed':''}">
+                <div class="wf-column-header">${p} KORİDOR</div>
+                <div class="wf-column-body">${runResults[p].corridorHTML}</div>
+                <div class="wf-total-row">TOTAL: ${runResults[p].count}</div>
+            </div>
+        `).join('');
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSA9/XTR1 Wrangle Occupation (Temporary)</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* --- TEMA DEĞİŞKENLERİ --- */
+        :root {
+            --bg-color: #131926;
+            --text-color: #e2e8f0;
+            --header-bg: #1a2234;
+            --panel-bg: #182030;
+            --panel-border: #232d42;
+            --table-title-bg: #1d3557;
+            --th-bg: #202b40;
+            --th-text: #70a1ff;
+            --tr-border: #232d42;
+            --tr-hover: #1c2639;
+            --input-bg: #1f293d;
+            --input-border: #344463;
+            --input-text: #ffffff;
+            --hint-bg: #1e293b;
+            --theme-btn-bg: #383a40;
+            --theme-btn-border: #4f525c;
+            --theme-btn-text: #ffffff;
+            --upload-bg: #1e293b;
+            --upload-border: #3b82f6;
+            --bg-complete: #1b4332;
+            --text-complete: #52b788;
+            --stat-card-bg: #1f293d;
+            --stat-text: #94a3b8;
+            --stat-value: #ffffff;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f4f6f9;
+            --text-color: #333333;
+            --header-bg: #ffffff;
+            --panel-bg: #ffffff;
+            --panel-border: #cbd5e1;
+            --table-title-bg: #0284c7;
+            --th-bg: #f8fafc;
+            --th-text: #1e40af;
+            --tr-border: #e2e8f0;
+            --tr-hover: #f1f5f9;
+            --input-bg: #ffffff;
+            --input-border: #cbd5e1;
+            --input-text: #333333;
+            --hint-bg: #e0f2fe;
+            --theme-btn-bg: #e2e8f0;
+            --theme-btn-border: #cbd5e1;
+            --theme-btn-text: #333333;
+            --upload-bg: #f8fafc;
+            --upload-border: #0284c7;
+            --bg-complete: #d1fae5;
+            --text-complete: #065f46;
+            --stat-card-bg: #f8fafc;
+            --stat-text: #64748b;
+            --stat-value: #0f172a;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 15px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: var(--header-bg);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+        .theme-btn {
+            background-color: var(--theme-btn-bg);
+            color: var(--theme-btn-text);
+            border: 1px solid var(--theme-btn-border);
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* --- SÜRÜKLE BIRAK ALANLARI --- */
+        .upload-section {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .upload-container {
+            flex: 1;
+            background-color: var(--upload-bg);
+            border: 2px dashed var(--upload-border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        .upload-container.dragover {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-color: #2563eb;
+            transform: scale(1.01);
+        }
+        .upload-btn-text { font-size: 14px; font-weight: 600; color: var(--th-text); pointer-events: none; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .upload-container input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+        .file-name-display { display: block; font-size: 11px; color: #64748b; margin-top: 5px; font-style: italic; pointer-events: none; }
+
+        .paste-hint {
+            background-color: var(--hint-bg);
+            border-left: 4px solid #3b82f6;
+            padding: 8px 12px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            color: #64748b;
+            border-radius: 0 6px 6px 0;
+        }
+
+        /* --- DASHBOARD KARTLARI --- */
+        .dashboard-top { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 15px; }
+        .stat-card { background-color: var(--stat-card-bg); border: 1px solid var(--panel-border); border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; user-select: none; transition: transform 0.2s, border-color 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); border-color: #3b82f6; }
+        .stat-card.active-card { border: 2px solid #3b82f6; background-color: rgba(59, 130, 246, 0.08) !important; box-shadow: inset 0 0 4px rgba(59, 130, 246, 0.2); }
+        .stat-card h3 { margin: 0; font-size: 12px; color: var(--stat-text); text-transform: uppercase; }
+        .stat-card p { margin: 10px 0 0; font-size: 26px; font-weight: bold; color: var(--stat-value); }
+
+        .dashboard-charts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px; }
+        .chart-box { background-color: var(--stat-card-bg); border: 1px solid var(--panel-border); border-radius: 8px; padding: 10px; height: 140px; display: flex; justify-content: center; align-items: center; }
+
+        /* --- ISI HARİTASI (HEATMAP) --- */
+        .heatmap-panel-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .heatmap-card { background-color: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 8px; padding: 15px; }
+        .heatmap-title { font-size: 13px; font-weight: 700; color: var(--th-text); margin-bottom: 10px; border-bottom: 1px solid var(--panel-border); padding-bottom: 8px; }
+        .heatmap-zones { display: flex; flex-wrap: wrap; gap: 8px; }
+        .heatmap-badge { padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; color: #ffffff; }
+
+        /* --- AKSİYON MERKEZİ --- */
+        .action-center-box { background-color: var(--panel-bg); border: 2px solid #ef4444; border-radius: 8px; padding: 15px; margin-bottom: 15px; display: none; }
+        .action-center-title { font-size: 14px; font-weight: bold; color: #ef4444; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .action-list { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.6; }
+        .action-list li { margin-bottom: 6px; }
+
+        /* --- TABLO DÜZENİ --- */
+        .search-container { margin-bottom: 15px; width: 100%; position: relative; }
+        .search-input { width: 100%; box-sizing: border-box; padding: 10px 15px; background-color: var(--input-bg); color: var(--input-text); border: 1px solid var(--panel-border); border-radius: 6px; outline: none; }
+        .dashboard-grid { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+        .main-container { background-color: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 8px; padding: 15px; width: 100%; box-sizing: border-box; }
+        .table-title { background-color: var(--table-title-bg); color: #ffffff; text-align: center; padding: 10px; font-weight: bold; font-size: 14px; border-radius: 6px; margin-bottom: 12px; }
+        .table-responsive { width: 100%; }
+        table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; }
+        th { background-color: var(--th-bg); color: var(--th-text); padding: 10px 6px; font-weight: 600; font-size: 12px; border-bottom: 2px solid var(--panel-border); word-wrap: break-word; }
+        tr { border-bottom: 1px solid var(--tr-border); }
+        tr:hover { background-color: var(--tr-hover); }
+        td { padding: 4px 3px; vertical-align: top; }
+        .auto-wrap-cell { width: 100%; min-height: 33px; box-sizing: border-box; background-color: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border); border-radius: 4px; padding: 8px 6px; font-size: 12px; white-space: normal; overflow-wrap: anywhere; line-height: 1.4; }
+
+        .cpt-earliest { background: linear-gradient(135deg, #7f1d1d, #991b1b) !important; color: #fecaca !important; font-weight: 700; border: 1px solid #ef4444 !important; }
+        
+        .risk-high { background-color: #ef4444 !important; color: #ffffff !important; font-weight: bold; text-align: center; }
+        .risk-med { background-color: #f59e0b !important; color: #ffffff !important; font-weight: bold; text-align: center; }
+        .risk-low { background-color: #10b981 !important; color: #ffffff !important; font-weight: bold; text-align: center; }
+        
+        [data-theme="light"] .risk-high { background-color: #fecaca !important; color: #991b1b !important; }
+        [data-theme="light"] .risk-med { background-color: #fef08a !important; color: #854d0e !important; }
+        [data-theme="light"] .risk-low { background-color: #d1fae5 !important; color: #065f46 !important; }
+
+        .t2-c1 { width: 7%; } .t2-c2 { width: 7%; } .t2-c3 { width: 9%; } .t2-c4 { width: 10%; } .t2-c5 { width: 9%; } .t2-c6 { width: 9%; } .t2-c7 { width: 8%; } .t2-c8 { width: 8%; } .t2-c9 { width: 8%; } .t2-c10 { width: 8%; } .t2-c11 { width: 11%; } .t2-c12 { width: 6%; }
+
+        .action-bar { margin-top: 15px; display: flex; justify-content: flex-end; gap: 12px; }
+        .btn { padding: 10px 24px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; border: none; transition: background-color 0.2s; }
+        .clear-btn { background-color: #dc2626; color: white; }
+        .clear-btn:hover { background-color: #b91c1c; }
+        .save-btn { background-color: #1a73e8; color: white; }
+        .save-btn:hover { background-color: #155cb4; }
+
+        /* --- AYARLAR MENÜSÜ VE KOLON GİZLEME --- */
+        .settings-panel {
+            position: absolute; top: 100%; right: 150px; margin-top: 8px;
+            background: var(--panel-bg); border: 1px solid var(--panel-border);
+            border-radius: 8px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 200; display: flex; flex-direction: column; gap: 10px; width: 180px;
+        }
+        .settings-panel h4 { margin: 0 0 5px 0; font-size: 13px; border-bottom: 1px solid var(--panel-border); padding-bottom: 5px; color: var(--th-text); }
+        .settings-panel label { font-size: 13px; display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-color); }
+        
+        /* Dinamik kolon gizleme sınıfları */
+        .hide-col-3 .t2-c3, .hide-col-3 td:nth-child(3) { display: none !important; }
+        .hide-col-4 .t2-c4, .hide-col-4 td:nth-child(4) { display: none !important; }
+        .hide-col-7 .t2-c7, .hide-col-7 td:nth-child(7) { display: none !important; }
+        .hide-col-8 .t2-c8, .hide-col-8 td:nth-child(8) { display: none !important; }
+        .hide-col-9 .t2-c9, .hide-col-9 td:nth-child(9) { display: none !important; }
+        .hide-col-10 .t2-c10, .hide-col-10 td:nth-child(10) { display: none !important; }
+        .hide-col-11 .t2-c11, .hide-col-11 td:nth-child(11) { display: none !important; }
+
+        /* --- FOCUS MODE (ODAK MODU) --- */
+        .focus-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 9999;
+            display: none; justify-content: center; align-items: center;
+            backdrop-filter: blur(4px);
+        }
+        .focus-modal {
+            background: var(--panel-bg); padding: 25px; border-radius: 12px;
+            width: 95%; max-width: 1300px; max-height: 90vh; overflow-y: auto;
+            border: 2px solid #3b82f6; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+        #focus-tbody td { padding: 10px 3px; }
+        #focus-tbody .auto-wrap-cell { font-size: 14px; min-height: 40px; }
+
+        #table-summary tbody tr { cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>XSA9/XTR1 Wrangle Occupation (Temporary)</h1>
+        <button class="theme-btn" id="theme-toggle-btn">🌙 Koyu Mod</button>
+    </div>
+
+    <div class="upload-section">
+        <div class="upload-container" id="con4-dropzone">
+            <span class="upload-btn-text">📄 Con4 .csv Yükle</span>
+            <input type="file" id="con4-upload" accept=".csv" onchange="readCSV(this, 'con4')">
+            <span id="con4-file-name" class="file-name-display"></span>
+        </div>
+        <div class="upload-container" id="wip-dropzone">
+            <span class="upload-btn-text">📄 WIP .csv Yükle</span>
+            <input type="file" id="wip-upload" accept=".csv" onchange="readCSV(this, 'wip')">
+            <span id="wip-file-name" class="file-name-display"></span>
+        </div>
+    </div>
+
+    <div class="paste-hint">💡 BATCH ve Buffer bilgileri yüklediğiniz .csv dosyalarından otomatik olarak tespit edilecektir. Sadece geçerli BATCH ID'si olan satırlar listelenir. Lütfen dosyaları yükleyin. (Detaylar için tablodaki satıra çift tıklayın)</div>
+
+    <div class="dashboard-top">
+        <div class="stat-card" id="card-all" onclick="setCardFilter('all', this)">
+            <h3>BATCH IN PROGRESS</h3><p id="stat-batch-progress">0</p>
+        </div>
+        <div class="stat-card" id="card-pick-continue" onclick="setCardFilter('pick_continue', this)">
+            <h3>PICK CONTINUE</h3><p id="stat-pick-continue">0</p>
+        </div>
+        <div class="stat-card" id="card-pick-complete" onclick="setCardFilter('pick_complete', this)">
+            <h3>PICK COMPLETE</h3><p id="stat-pick-complete">0</p>
+            <div id="pick-complete-list" style="font-size:11px;margin-top:8px;"></div>
+        </div>
+        <div class="stat-card" id="card-buffer-continue" onclick="setCardFilter('buffer_continue', this)">
+            <h3>BUFFER CONTINUE</h3><p id="stat-buffer-continue">0</p>
+        </div>
+        <div class="stat-card" id="card-buffer-complete" onclick="setCardFilter('buffer_complete', this)">
+            <h3>BUFFER COMPLETE</h3><p id="stat-buffer-complete">0</p>
+            <div id="buffer-complete-list" style="font-size:11px;margin-top:8px;"></div>
+        </div>
+    </div>
+
+    <div class="dashboard-charts">
+        <div class="chart-box"><canvas id="statusChart"></canvas></div>
+        <div class="chart-box"><canvas id="bufferChart"></canvas></div>
+    </div>
+
+    <div id="action-center-panel" class="action-center-box">
+        <div class="action-center-title">🚨 AKSİYON MERKEZİ</div>
+        <ul id="action-center-list" class="action-list"></ul>
+    </div>
+
+    <div id="heatmap-panel" class="heatmap-panel-container"></div>
+
+    <div class="dashboard-grid">
+        <div class="main-container">
+            <div class="table-title">Summary & Auto Assignments</div>
+            
+            <div class="search-container" style="display: flex; gap: 10px;">
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Ara..." onkeyup="applyFilters()" style="flex: 1;">
+                
+                <button class="btn theme-btn" onclick="toggleSettingsModal()" style="padding: 0 15px;">⚙️ Ayarlar</button>
+                <button class="btn save-btn" onclick="applySmartSort()" style="padding: 0 15px;">⚡ Smart Sort</button>
+                
+                <div id="col-settings-panel" class="settings-panel" style="display:none;">
+                    <h4>Görünür Kolonlar</h4>
+                    <label><input type="checkbox" checked onchange="toggleCol(3)"> Process Path</label>
+                    <label><input type="checkbox" checked onchange="toggleCol(4)"> CPT</label>
+                    <label><input type="checkbox" checked onchange="toggleCol(7)"> Sort Status</label>
+                    <label><input type="checkbox" checked onchange="toggleCol(8)"> InProgress</label>
+                    <label><input type="checkbox" checked onchange="toggleCol(9)"> InTransit</label>
+                    <label><input type="checkbox" checked onchange="toggleCol(10)"> AtDestination</label>
+                    <label><input type="checkbox" checked onchange="toggleCol(11)"> NotYetPicked</label>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table" id="table-summary">
+                    <thead>
+                        <tr>
+                            <th class="t2-c1">Buffer No. ↕</th><th class="t2-c2">Batch ID ↕</th><th class="t2-c3">Process Path ↕</th>
+                            <th class="t2-c4">CPT ↕</th><th class="t2-c5">Pick Status ↕</th><th class="t2-c6">Buffer Status ↕</th>
+                            <th class="t2-c7">Sort Status ↕</th>
+                            <th class="t2-c8">InProgress ↕</th><th class="t2-c9">InTransit ↕</th><th class="t2-c10">AtDestination ↕</th>
+                            <th class="t2-c11">NotYetPicked ↕</th><th class="t2-c12">Risk ↕</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="main-container" id="aged-totes-container" style="display: none;">
+            <div class="table-title" style="background-color: #dc2626;">🚨 Late Totes (>2 Hours)</div>
+            <div class="table-responsive">
+                <table class="data-table" id="table-aged-totes">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">Process Path</th>
+                            <th style="width: 25%;">Tote (Scannable ID)</th>
+                            <th style="width: 25%;">CPT</th>
+                            <th style="width: 25%;">Stage</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="action-bar">
+        <button class="btn clear-btn" onclick="clearAllTables()">Hepsini Temizle</button>
+        <button class="btn save-btn" onclick="processAndCalculate()">Hesapla</button>
+    </div>
+
+    <div id="focus-overlay" class="focus-overlay" onclick="closeFocusMode(event)">
+        <div class="focus-modal" onclick="event.stopPropagation()">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                <h2 id="focus-title" style="margin:0; color:var(--th-text); text-transform: uppercase; border-bottom: 2px solid #3b82f6; padding-bottom: 5px;">🎯 Focus Mode</h2>
+                <button class="btn clear-btn" onclick="closeFocusMode(true)" style="padding: 6px 12px; font-size: 13px;">❌ Kapat</button>
+            </div>
+            
+            <div class="table-title">BATCH DETAYLARI</div>
+            <div class="table-responsive">
+                <table class="data-table" style="margin-bottom: 20px;">
+                    <thead id="focus-thead"></thead>
+                    <tbody id="focus-tbody"></tbody>
+                </table>
+            </div>
+
+            <div id="focus-heatmap" class="heatmap-panel-container" style="display:flex; justify-content:center; margin-top: 10px;">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        let con4Rows = [];
+        let wipRows = [];
+        let combinedDatabase = [];
+        let statusChartInstance = null;
+        let bufferChartInstance = null;
+        let heatmapData = {};
+        let activeCardFilter = null; 
+
+        function initBlankRows() {
+            const tbody = document.getElementById('table-summary').querySelector('tbody');
+            tbody.innerHTML = '';
+            for (let r = 0; r < 12; r++) {
+                let tr = document.createElement('tr');
+                for (let c = 0; c < 12; c++) {
+                    tr.innerHTML += '<td><div class="auto-wrap-cell"></div></td>';
+                }
+                tbody.appendChild(tr);
+            }
+            updateDashboardStats();
+            setupTableSorting();
+            setupFocusMode();
+        }
+
+        function setupDragAndDrop(dropzoneId, inputId, type) {
+            const dropzone = document.getElementById(dropzoneId);
+            const input = document.getElementById(inputId);
+
+            dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+            dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) { input.files = e.dataTransfer.files; readCSV(input, type); }
+            });
+        }
+
+        function readCSV(fileInput, type) {
+            const file = fileInput.files[0];
+            if (!file) return;
+            document.getElementById(`${type}-file-name`).textContent = `(${file.name})`;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const text = e.target.result;
+                const lines = text.split(/\r\n|\n/);
+                const parsedRows = lines.slice(1).map(line => {
+                    return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => cell.replace(/^"|"$/g, '').trim());
+                }).filter(r => r.length > 1);
+                
+                if (type === 'con4') con4Rows = parsedRows;
+                if (type === 'wip') wipRows = parsedRows;
+
+                combinedDatabase = [...con4Rows, ...wipRows];
+                if (combinedDatabase.length > 0) processAndCalculate();
+            };
+            reader.readAsText(file);
+        }
+
+        function applyProgressBar(element, percent) {
+            let color = "rgba(220, 38, 38, 0.35)";
+            if (percent >= 80) color = "rgba(34, 197, 94, 0.4)";
+            else if (percent >= 35) color = "rgba(245, 158, 11, 0.4)";
+            element.style.setProperty('background', `linear-gradient(to right, ${color} ${percent}%, var(--input-bg) ${percent}%)`, 'important');
+        }
+
+        function getRiskScore(cptStr, pickStatus, bufferStatus, pickPercent, bufferPercent, earliestTimestamp) {
+            if (!cptStr || cptStr === "-" || (pickStatus === "Complete" && bufferStatus === "Complete")) return 0;
+
+            let timeRisk = 0;
+            let cptDate = new Date(cptStr);
+            if (isNaN(cptDate.getTime())) {
+                const timeMatch = cptStr.match(/(\d{1,2}):(\d{2})/);
+                if (timeMatch) {
+                    cptDate = new Date();
+                    cptDate.setHours(parseInt(timeMatch[1]), parseInt(timeMatch[2]), 0, 0);
+                }
+            }
+            
+            if (!isNaN(cptDate.getTime()) && earliestTimestamp) {
+                if (cptDate.getTime() === earliestTimestamp) {
+                    timeRisk = 50; 
+                } else {
+                    let diffHours = (cptDate.getTime() - earliestTimestamp) / (1000 * 60 * 60);
+                    if (diffHours <= 1) timeRisk = 40;
+                    else if (diffHours <= 2) timeRisk = 25;
+                    else if (diffHours <= 4) timeRisk = 15;
+                    else timeRisk = 5;
+                }
+            } else {
+                timeRisk = 20; 
+            }
+
+            let pickRisk = (100 - pickPercent) * 0.30;
+            let bufferRisk = (100 - bufferPercent) * 0.20; 
+
+            return timeRisk + pickRisk + bufferRisk;
+        }
+
+        function processAndCalculate() {
+            const summaryTbody = document.getElementById('table-summary').querySelector('tbody');
+            summaryTbody.innerHTML = '';
+            
+            heatmapData = {}; 
+            let alertsList = [];
+            let earliestTimestamp = null;
+            let agedTotesMap = new Map();
+            let batches = {};
+
+            // 1. Gruplama ve Veri Çıkarımı
+            const targetProcessPaths = ["PPSingles", "PPMultiSmallMPPB", "PPMultiNonSort", "PPGiftWrap", "PPGiftWrapSingles"];
+
+            combinedDatabase.forEach(row => {
+                let batchId = row[11] && row[11].trim() !== "" ? row[11].trim() : null;
+                
+                // Batch ID yoksa bu satırı tamamen atla
+                if (!batchId) return;
+
+                if (!batches[batchId]) {
+                    batches[batchId] = {
+                        data: [],
+                        cptValue: row[3] || "-", 
+                        bufferNo: "-"
+                    };
+                }
+                batches[batchId].data.push(row);
+
+                // Otomatik Buffer Tespiti (Lokasyon cvBUFFER ise)
+                let loc = row[5] || "";
+                if (loc.startsWith("cvBUFFER")) {
+                    let cleanBuffer = loc.replace("cvBUFFER", "").trim();
+                    batches[batchId].bufferNo = cleanBuffer || loc;
+                }
+
+                // Gecikmiş Toteler
+                let processPath = row[9] || "-";
+                let stage = row[13] || "";
+                let toteId = row[4] || "Bilinmiyor";
+                let cptValue = row[3] || "-";
+                let dwellTime = parseFloat(row[14]) || 0;
+                let stageLower = stage.toLowerCase();
+                let isTargetStage = stageLower.includes("inprogress") || stageLower.includes("intransit") || stageLower.includes("atdestination");
+
+                if (dwellTime > 2.0 && targetProcessPaths.includes(processPath) && isTargetStage) {
+                    if (!agedTotesMap.has(toteId)) {
+                        let displayStage = stage.replace("PickingPicked", "");
+                        agedTotesMap.set(toteId, {
+                            path: processPath, tote: toteId, cpt: cptValue, stage: displayStage, dwell: dwellTime.toFixed(2)
+                        });
+                    }
+                }
+            });
+
+            // 2. En Erken CPT Belirleme
+            Object.values(batches).forEach(b => {
+                if (b.cptValue && b.cptValue !== "-") {
+                    const dt = new Date(b.cptValue);
+                    if (!isNaN(dt.getTime())) {
+                        if (earliestTimestamp === null || dt < earliestTimestamp) earliestTimestamp = dt.getTime();
+                    }
+                }
+            });
+
+            // 3. Hesaplamalar ve Summary Tablosunu Doldurma
+            Object.keys(batches).forEach(batchId => {
+                let batchData = batches[batchId].data;
+                let cptValue = batches[batchId].cptValue;
+                let bufferNo = batches[batchId].bufferNo;
+                let processPath = batchData.length > 0 ? (batchData[0][9] || "-") : "-";
+
+                let pickStatus = "Complete", bufferStatus = "Complete", tumuBufferMi = true;
+                let sortStatusSet = new Set(), localIP = new Set(), localIT = new Set(), localAD = new Set(), zoneNotYetQtyDict = {};
+                let totalQty = 0, pickedQty = 0, bufferedQty = 0;
+
+                batchData.forEach(row => {
+                    let loc = row[5] || "", stat = row[13] || "", zone = row[4] || "", qty = parseFloat(row[12]) || 0;
+                    totalQty += qty;
+
+                    if (!loc.startsWith("cvBUFFER") && !loc.startsWith("rePOPS")) tumuBufferMi = false;
+                    else bufferedQty += qty;
+                    
+                    if (stat.toLowerCase().includes("pickingnotyetpicked")) {
+                        pickStatus = "Continue";
+                        let zoneKey = zone.trim().substring(0, 5);
+                        if (zoneKey) zoneNotYetQtyDict[zoneKey] = (zoneNotYetQtyDict[zoneKey] || 0) + qty;
+                        
+                        if (zoneKey && processPath !== "-") {
+                            if (!heatmapData[processPath]) heatmapData[processPath] = {};
+                            heatmapData[processPath][zoneKey] = (heatmapData[processPath][zoneKey] || 0) + qty;
+                        }
+                    } else {
+                        pickedQty += qty;
+                    }
+
+                    if (stat === "Sorted") {
+                        let displayZone = zone.trim();
+                        // DÜZELTME: Eğer rbSM ile başlıyorsa sadece ilk 7 karakterini alıp set'e ekliyoruz
+                        if (displayZone.startsWith("rbSM") && displayZone.length >= 7) {
+                            displayZone = displayZone.substring(0, 7);
+                        }
+                        sortStatusSet.add(displayZone);
+                    }
+                    if (stat === "PickingPickedInProgress") localIP.add(zone);
+                    if (stat === "PickingPickedInTransit") localIT.add(zone);
+                    if (stat === "PickingPickedAtDestination") localAD.add(zone);
+                });
+
+                if (!tumuBufferMi) bufferStatus = "Continue";
+                let pickPercent = totalQty > 0 ? (pickedQty / totalQty) * 100 : (pickStatus === "Complete" ? 100 : 0);
+                let bufferPercent = totalQty > 0 ? (bufferedQty / totalQty) * 100 : (bufferStatus === "Complete" ? 100 : 0);
+
+                let riskScore = getRiskScore(cptValue, pickStatus, bufferStatus, pickPercent, bufferPercent, earliestTimestamp);
+
+                if (riskScore > 65) {
+                    alertsList.push({
+                        score: riskScore, html: `⚠️ <strong>[YÜKSEK RİSK - Skor: ${riskScore.toFixed(0)}]</strong> <b>Batch ${batchId}</b> (Buffer: ${bufferNo}) Toplama ilerlemesi %${pickPercent.toFixed(0)}`
+                    });
+                } else if (pickStatus === "Continue" && pickPercent < 35) {
+                    alertsList.push({
+                        score: riskScore, html: `🚨 <strong>[Yavaş Toplama]</strong> <b>Batch ${batchId}</b> toplanması yavaş ilerliyor (%${pickPercent.toFixed(0)}).`
+                    });
+                }
+
+                let tr = document.createElement('tr');
+                tr.setAttribute('data-heatmap', JSON.stringify(zoneNotYetQtyDict));
+
+                for(let i = 0; i < 12; i++) {
+                    let td = document.createElement('td');
+                    td.innerHTML = '<div class="auto-wrap-cell"></div>';
+                    tr.appendChild(td);
+                }
+
+                tr.children[0].querySelector('.auto-wrap-cell').textContent = bufferNo;
+                tr.children[1].querySelector('.auto-wrap-cell').textContent = batchId;
+                tr.children[2].querySelector('.auto-wrap-cell').textContent = processPath;
+                tr.children[3].querySelector('.auto-wrap-cell').textContent = cptValue;
+
+                let pickCell = tr.children[4].querySelector('.auto-wrap-cell');
+                pickCell.textContent = pickStatus;
+                if (pickStatus === "Complete") {
+                    pickCell.style.backgroundColor = "var(--bg-complete)";
+                    pickCell.style.color = "var(--text-complete)";
+                    pickCell.style.border = "1px solid var(--text-complete)";
+                } else {
+                    applyProgressBar(pickCell, pickPercent);
+                }
+
+                let bufferCell = tr.children[5].querySelector('.auto-wrap-cell');
+                bufferCell.textContent = bufferStatus;
+                if (bufferStatus === "Complete") {
+                    bufferCell.style.backgroundColor = "var(--bg-complete)";
+                    bufferCell.style.color = "var(--text-complete)";
+                    bufferCell.style.border = "1px solid var(--text-complete)";
+                } else {
+                    applyProgressBar(bufferCell, bufferPercent);
+                }
+
+                tr.children[6].querySelector('.auto-wrap-cell').textContent = sortStatusSet.size > 0 ? [...sortStatusSet].join(' - ') : (bufferStatus === "Complete" ? "Not Started" : "-");
+                tr.children[7].querySelector('.auto-wrap-cell').textContent = localIP.size > 0 ? [...localIP].join(' - ') : "-";
+                tr.children[8].querySelector('.auto-wrap-cell').textContent = localIT.size > 0 ? [...localIT].join(' - ') : "-";
+                tr.children[9].querySelector('.auto-wrap-cell').textContent = localAD.size > 0 ? [...localAD].join(' - ') : "-";
+                tr.children[10].querySelector('.auto-wrap-cell').textContent = Object.keys(zoneNotYetQtyDict).length > 0 ? Object.keys(zoneNotYetQtyDict).map(z => `${z}: ${zoneNotYetQtyDict[z]}`).join(' - ') : "-";
+
+                let riskCell = tr.children[11].querySelector('.auto-wrap-cell');
+                riskCell.textContent = riskScore > 0 ? riskScore.toFixed(0) + "/100" : "0/100";
+                riskCell.setAttribute('data-score', riskScore);
+                if (riskScore >= 65) riskCell.classList.add('risk-high');
+                else if (riskScore >= 35) riskCell.classList.add('risk-med');
+                else if (riskScore > 0) riskCell.classList.add('risk-low');
+
+                summaryTbody.appendChild(tr);
+            });
+
+            // Gecikmiş Totelerin Eklenmesi
+            const agedTotesContainer = document.getElementById('aged-totes-container');
+            const agedTotesTbody = document.getElementById('table-aged-totes').querySelector('tbody');
+            agedTotesTbody.innerHTML = '';
+            
+            if (agedTotesMap.size > 0) {
+                agedTotesMap.forEach(item => {
+                    let tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><div class="auto-wrap-cell">${item.path}</div></td>
+                        <td><div class="auto-wrap-cell" style="font-weight: bold; color: #ef4444;">${item.tote} <br><small style="color:#64748b;">(Dwell Time: ${item.dwell} hours)</small></div></td>
+                        <td><div class="auto-wrap-cell">${item.cpt}</div></td>
+                        <td><div class="auto-wrap-cell">${item.stage}</div></td>
+                    `;
+                    agedTotesTbody.appendChild(tr);
+                });
+                agedTotesContainer.style.display = 'block';
+            } else {
+                agedTotesContainer.style.display = 'none';
+            }
+
+            // En Erken CPT Renklendirme
+            let earliestDate = null;
+            let cptCells = [];
+            summaryTbody.querySelectorAll('tr').forEach(row => {
+                const cell = row.children[3]?.querySelector('.auto-wrap-cell');
+                if (!cell || !cell.textContent.trim() || cell.textContent.trim() === "-") return;
+                const dt = new Date(cell.textContent.trim());
+                if (!isNaN(dt.getTime())) {
+                    cptCells.push({ cell, dt });
+                    if (earliestDate === null || dt < earliestDate) earliestDate = dt;
+                }
+            });
+            if (earliestDate) cptCells.forEach(item => { if (item.dt.getTime() === earliestDate.getTime()) item.cell.classList.add('cpt-earliest'); });
+
+            // Aksiyon Merkezi Gösterimi
+            const actionPanel = document.getElementById('action-center-panel');
+            const actionList = document.getElementById('action-center-list');
+            
+            alertsList.sort((a, b) => b.score - a.score);
+            let topAlerts = alertsList.slice(0, 3);
+            
+            if (topAlerts.length > 0) { 
+                actionList.innerHTML = topAlerts.map(a => `<li>${a.html}</li>`).join(''); 
+                actionPanel.style.display = 'block'; 
+            } else {
+                actionPanel.style.display = 'none';
+            }
+
+            updateDashboardStats();
+            renderHeatmap();
+            applyFilters();
+        }
+
+        // --- DASHBOARD VE HEATMAP ---
+        function updateDashboardStats() {
+            let batchInProgress = 0, pickContinue = 0, pickComplete = 0, bufferContinue = 0, bufferComplete = 0;
+            let pickCompleteBuffers = [], bufferCompleteBuffers = [];
+            document.getElementById('table-summary').querySelectorAll('tbody tr').forEach(row => {
+                const batchId = row.children[1]?.querySelector('.auto-wrap-cell')?.textContent.trim();
+                if (!batchId) return;
+                batchInProgress++;
+                const pickStatus = row.children[4]?.querySelector('.auto-wrap-cell')?.textContent.trim();
+                const bufferStatus = row.children[5]?.querySelector('.auto-wrap-cell')?.textContent.trim();
+                const bufferNo = row.children[0]?.querySelector('.auto-wrap-cell')?.textContent.trim();
+                if (pickStatus === "Continue") pickContinue++;
+                if (pickStatus === "Complete") { pickComplete++; if (bufferNo && bufferNo !== "-") pickCompleteBuffers.push(bufferNo); }
+                if (bufferStatus === "Continue") bufferContinue++;
+                if (bufferStatus === "Complete") { bufferComplete++; if (bufferNo && bufferNo !== "-") bufferCompleteBuffers.push(bufferNo); }
+            });
+            document.getElementById('stat-batch-progress').textContent = batchInProgress;
+            document.getElementById('stat-pick-continue').textContent = pickContinue;
+            document.getElementById('stat-pick-complete').textContent = pickComplete;
+            document.getElementById('stat-buffer-continue').textContent = bufferContinue;
+            document.getElementById('stat-buffer-complete').textContent = bufferComplete;
+            document.getElementById('pick-complete-list').innerHTML = pickCompleteBuffers.join(' - ');
+            document.getElementById('buffer-complete-list').innerHTML = bufferCompleteBuffers.join(' - ');
+
+            renderChart('statusChart', pickComplete, pickContinue, 'PICK STATUS');
+            renderChart('bufferChart', bufferComplete, bufferContinue, 'BUFFER STATUS');
+        }
+
+        function renderChart(canvasId, complete, inProgress, labelStr) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (canvasId === 'statusChart' && statusChartInstance) statusChartInstance.destroy();
+            if (canvasId === 'bufferChart' && bufferChartInstance) bufferChartInstance.destroy();
+            if (complete === 0 && inProgress === 0) complete = 0.001; 
+            const textColor = document.documentElement.getAttribute('data-theme') === 'light' ? '#333' : '#e2e8f0';
+            const bgColors = canvasId === 'statusChart' ? ['#52b788', '#eab308'] : ['#0ea5e9', '#f43f5e'];
+
+            const newChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: ['Tamamlanan', 'Devam Eden'], datasets: [{ data: [complete, inProgress], backgroundColor: bgColors, borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: textColor, boxWidth: 12, font: {size: 11} } }, title: { display: true, text: labelStr, color: textColor, font: {size: 13, weight: 'bold'} } } }
+            });
+            if (canvasId === 'statusChart') statusChartInstance = newChart; else bufferChartInstance = newChart;
+        }
+
+        function renderHeatmap() {
+            const container = document.getElementById('heatmap-panel');
+            container.innerHTML = '';
+            Object.keys(heatmapData).forEach(pp => {
+                let card = document.createElement('div'); card.className = 'heatmap-card';
+                let title = document.createElement('div'); title.className = 'heatmap-title'; title.textContent = `📍 ${pp} (NOT YET PICKED)`; card.appendChild(title);
+                let zonesDiv = document.createElement('div'); zonesDiv.className = 'heatmap-zones';
+                Object.keys(heatmapData[pp]).sort().forEach(z => {
+                    let qty = heatmapData[pp][z];
+                    let badge = document.createElement('span'); badge.className = 'heatmap-badge';
+                    if (qty <= 15) badge.style.backgroundColor = '#16a34a';
+                    else if (qty <= 40) badge.style.backgroundColor = '#ca8a04';
+                    else if (qty <= 80) badge.style.backgroundColor = '#ea580c';
+                    else badge.style.backgroundColor = '#dc2626';
+                    badge.textContent = `${z}: ${qty}`; zonesDiv.appendChild(badge);
+                });
+                card.appendChild(zonesDiv); container.appendChild(card);
+            });
+        }
+
+        // --- FİLTRELEME VE SIRALAMA ---
+        function setCardFilter(filterType, element) {
+            if (activeCardFilter === filterType) { activeCardFilter = null; element.classList.remove('active-card'); } 
+            else { document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active-card')); activeCardFilter = filterType; element.classList.add('active-card'); }
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const searchInput = document.getElementById("searchInput").value.toLowerCase();
+            const rows = document.getElementById("table-summary").querySelector('tbody').getElementsByTagName("tr");
+            for (let i = 0; i < rows.length; i++) {
+                const tr = rows[i];
+                const batchId = tr.children[1]?.textContent.trim() || "";
+                if (!batchId) { tr.style.display = (searchInput === "" && !activeCardFilter) ? "" : "none"; continue; }
+                const textContent = tr.textContent.toLowerCase();
+                const matchesSearch = searchInput === "" || textContent.includes(searchInput);
+                let matchesCard = true;
+                if (activeCardFilter) {
+                    const pickStatus = tr.children[4]?.textContent.trim(), bufferStatus = tr.children[5]?.textContent.trim();
+                    if (activeCardFilter === 'pick_continue') matchesCard = (pickStatus === 'Continue');
+                    if (activeCardFilter === 'pick_complete') matchesCard = (pickStatus === 'Complete');
+                    if (activeCardFilter === 'buffer_continue') matchesCard = (bufferStatus === 'Continue');
+                    if (activeCardFilter === 'buffer_complete') matchesCard = (bufferStatus === 'Complete');
+                }
+                tr.style.display = (matchesSearch && matchesCard) ? "" : "none";
+            }
+        }
+
+        function applySmartSort() {
+            const tbody = document.getElementById("table-summary").querySelector('tbody');
+            let rows = Array.from(tbody.querySelectorAll('tr'));
+            let dataRows = rows.filter(r => r.children[1].textContent.trim() !== "");
+            let emptyRows = rows.filter(r => r.children[1].textContent.trim() === "");
+            dataRows.sort((a, b) => {
+                let scoreA = parseFloat(a.children[11].querySelector('.auto-wrap-cell').getAttribute('data-score') || 0);
+                let scoreB = parseFloat(b.children[11].querySelector('.auto-wrap-cell').getAttribute('data-score') || 0);
+                if (scoreB !== scoreA) return scoreB - scoreA;
+                return a.children[3].textContent.trim().localeCompare(b.children[3].textContent.trim());
+            });
+            tbody.innerHTML = '';
+            dataRows.forEach(r => tbody.appendChild(r));
+            emptyRows.forEach(r => tbody.appendChild(r));
+        }
+
+        let sortDirections = [];
+        function setupTableSorting() {
+            document.querySelectorAll('#table-summary thead th').forEach((th, index) => {
+                th.style.cursor = 'pointer'; th.title = 'Sıralamak için tıklayın';
+                th.addEventListener('click', () => sortTable(index));
+            });
+        }
+
+        function sortTable(columnIndex) {
+            const tbody = document.getElementById("table-summary").querySelector('tbody');
+            let rows = Array.from(tbody.querySelectorAll('tr'));
+            let dataRows = rows.filter(r => r.children[1].textContent.trim() !== "");
+            let emptyRows = rows.filter(r => r.children[1].textContent.trim() === "");
+            let dir = sortDirections[columnIndex] === 'asc' ? 'desc' : 'asc';
+            sortDirections[columnIndex] = dir;
+            dataRows.sort((a, b) => {
+                let valA = a.children[columnIndex].textContent.trim(), valB = b.children[columnIndex].textContent.trim();
+                if (columnIndex === 11) {
+                     let sA = parseFloat(a.children[11].querySelector('.auto-wrap-cell').getAttribute('data-score') || 0);
+                     let sB = parseFloat(b.children[11].querySelector('.auto-wrap-cell').getAttribute('data-score') || 0);
+                     return dir === 'asc' ? sA - sB : sB - sA;
+                }
+                if (isNaN(valA) && isNaN(valB) && !isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) return dir === 'asc' ? new Date(valA) - new Date(valB) : new Date(valB) - new Date(valA);
+                let cmp = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+                return dir === 'asc' ? cmp : -cmp;
+            });
+            tbody.innerHTML = '';
+            dataRows.forEach(r => tbody.appendChild(r));
+            emptyRows.forEach(r => tbody.appendChild(r));
+        }
+
+        // --- AYARLAR VE ODAK MODU ---
+        function toggleSettingsModal() {
+            const panel = document.getElementById('col-settings-panel');
+            panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+        }
+
+        function toggleCol(colIndex) {
+            const table = document.getElementById('table-summary');
+            table.classList.toggle(`hide-col-${colIndex}`);
+        }
+
+        function setupFocusMode() {
+            document.getElementById('table-summary').querySelector('tbody').addEventListener('dblclick', function(e) {
+                let tr = e.target.closest('tr');
+                if(tr && tr.children[1].textContent.trim() !== "") openFocusMode(tr);
+            });
+        }
+
+        function openFocusMode(tr) {
+            const batchId = tr.children[1].textContent.trim();
+            document.getElementById('focus-title').innerHTML = `🎯 FOCUS MODE: <span style="color:#3b82f6;">BATCH ${batchId}</span>`;
+            
+            const thead = document.querySelector('#table-summary thead').cloneNode(true);
+            const clonedTr = tr.cloneNode(true);
+            
+            document.getElementById('focus-thead').innerHTML = '';
+            document.getElementById('focus-thead').appendChild(thead.children[0]);
+            
+            document.getElementById('focus-tbody').innerHTML = '';
+            document.getElementById('focus-tbody').appendChild(clonedTr);
+            
+            const heatmapDataStr = tr.getAttribute('data-heatmap');
+            const focusHeatmapContainer = document.getElementById('focus-heatmap');
+            focusHeatmapContainer.innerHTML = '';
+            
+            if(heatmapDataStr) {
+                const zones = JSON.parse(heatmapDataStr);
+                if(Object.keys(zones).length > 0) {
+                    let card = document.createElement('div');
+                    card.className = 'heatmap-card';
+                    card.style.width = '100%'; card.style.maxWidth = '600px';
+                    
+                    let title = document.createElement('div');
+                    title.className = 'heatmap-title';
+                    title.innerHTML = `📍 BATCH ${batchId} - NOT YET PICKED BÖLGELERİ`;
+                    card.appendChild(title);
+
+                    let zonesDiv = document.createElement('div');
+                    zonesDiv.className = 'heatmap-zones';
+
+                    Object.keys(zones).sort().forEach(z => {
+                        let qty = zones[z];
+                        let badge = document.createElement('span');
+                        badge.className = 'heatmap-badge';
+                        if (qty <= 15) badge.style.backgroundColor = '#16a34a';
+                        else if (qty <= 40) badge.style.backgroundColor = '#ca8a04';
+                        else if (qty <= 80) badge.style.backgroundColor = '#ea580c';
+                        else badge.style.backgroundColor = '#dc2626';
+                        badge.textContent = `${z}: ${qty}`;
+                        zonesDiv.appendChild(badge);
+                    });
+                    card.appendChild(zonesDiv);
+                    focusHeatmapContainer.appendChild(card);
+                } else {
+                    focusHeatmapContainer.innerHTML = '<div style="background-color: var(--bg-complete); color: var(--text-complete); padding: 15px 30px; border-radius: 8px; border: 1px solid var(--text-complete); font-weight: bold; font-size: 16px;">✅ Bu Batch için toplanacak ürün kalmadı (Tamamlandı).</div>';
+                }
+            }
+            
+            document.getElementById('focus-overlay').style.display = 'flex';
+            document.getElementById('col-settings-panel').style.display = 'none';
+        }
+
+        function closeFocusMode(force = false) {
+            if(force === true || event.target.id === 'focus-overlay') {
+                document.getElementById('focus-overlay').style.display = 'none';
+            }
+        }
+
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            if (currentTheme === 'light') { document.documentElement.removeAttribute('data-theme'); themeToggleBtn.innerHTML = '☀️ Aydınlık Mod'; } 
+            else { document.documentElement.setAttribute('data-theme', 'light'); themeToggleBtn.innerHTML = '🌙 Koyu Mod'; }
+            updateDashboardStats();
+        });
+
+        function clearAllTables() {
+            combinedDatabase = []; con4Rows = []; wipRows = []; heatmapData = {}; activeCardFilter = null;
+            document.querySelectorAll('.stat-card').forEach(card => card.classList.remove('active-card'));
+            document.getElementById('con4-upload').value = ''; document.getElementById('wip-upload').value = '';
+            document.getElementById('con4-file-name').textContent = ''; document.getElementById('wip-file-name').textContent = '';
+            document.getElementById('searchInput').value = ''; document.getElementById('heatmap-panel').innerHTML = ''; 
+            document.getElementById('action-center-panel').style.display = 'none';
+            document.getElementById('aged-totes-container').style.display = 'none'; 
+            initBlankRows();
+        }
+
+        window.onload = function() {
+            initBlankRows();
+            setupDragAndDrop('con4-dropzone', 'con4-upload', 'con4');
+            setupDragAndDrop('wip-dropzone', 'wip-upload', 'wip');
+        };
+    </script>
+</body>
+</html>
