@@ -334,15 +334,16 @@
         </div>
 
         <div class="main-container" id="aged-totes-container" style="display: none;">
-            <div class="table-title" style="background-color: #dc2626;">🚨 Late Totes (>2 Hours)</div>
+            <div class="table-title" style="background-color: #dc2626;">🚨 Late Totes (>30 Dakika)</div>
             <div class="table-responsive">
                 <table class="data-table" id="table-aged-totes">
                     <thead>
                         <tr>
-                            <th style="width: 25%;">Process Path</th>
-                            <th style="width: 25%;">Tote (Scannable ID)</th>
-                            <th style="width: 25%;">CPT</th>
-                            <th style="width: 25%;">Stage</th>
+                            <th style="width: 20%;">Batch ID ↕</th>
+                            <th style="width: 20%;">Process Path ↕</th>
+                            <th style="width: 25%;">Tote (Scannable ID) ↕</th>
+                            <th style="width: 15%;">CPT ↕</th>
+                            <th style="width: 20%;">Stage ↕</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -651,19 +652,20 @@
             combinedDatabase.forEach(row => {
                 let processPath = row[9] || "-";
                 let stage = row[13] || "";
-                let toteId = row[4] || "Bilinmiyor"; // 4. index "Scannable ID" (Tote)
+                let toteId = row[4] || "Bilinmiyor"; 
                 let cptValue = row[3] || "-";
-                let dwellTime = parseFloat(row[14]) || 0; // 14. index "Dwell Time (hours)"
+                let dwellTime = parseFloat(row[14]) || 0; 
+                let batchId = row[11] || row[0] || "-"; 
 
-                // Stage kontrolü (Örn: PickingPickedInProgress vb. içeriyor mu?)
                 let stageLower = stage.toLowerCase();
                 let isTargetStage = stageLower.includes("inprogress") || stageLower.includes("intransit") || stageLower.includes("atdestination");
 
-                // Eğer Dwell Time 2.0 saatin üzerindeyse ve diğer koşulları sağlıyorsa
-                if (dwellTime > 2.0 && targetProcessPaths.includes(processPath) && isTargetStage) {
+                // Dwell Time limitini > 2.0 yerine > 0.5 (30 dakika) yapıyoruz
+                if (dwellTime > 0.5 && targetProcessPaths.includes(processPath) && isTargetStage) {
                     if (!agedTotesMap.has(toteId)) {
-                        let displayStage = stage.replace("PickingPicked", ""); // Ekranda güzel dursun diye
+                        let displayStage = stage.replace("PickingPicked", ""); 
                         agedTotesMap.set(toteId, {
+                            batch: batchId,
                             path: processPath,
                             tote: toteId,
                             cpt: cptValue,
@@ -681,7 +683,9 @@
             if (agedTotesMap.size > 0) {
                 agedTotesMap.forEach(item => {
                     let tr = document.createElement('tr');
+                    // Batch sütununu da ekledik
                     tr.innerHTML = `
+                        <td><div class="auto-wrap-cell">${item.batch}</div></td>
                         <td><div class="auto-wrap-cell">${item.path}</div></td>
                         <td><div class="auto-wrap-cell" style="font-weight: bold; color: #ef4444;">${item.tote} <br><small style="color:#64748b;">(Dwell Time: ${item.dwell} hours)</small></div></td>
                         <td><div class="auto-wrap-cell">${item.cpt}</div></td>
@@ -695,8 +699,11 @@
             }
             // -------------------------------------------------------------
 
+            // --- ORTAK CPT HESAPLAMASI VE RENKLENDİRME ---
             let earliestDate = null;
             let cptCells = [];
+
+            // Summary Table
             summaryTbody.querySelectorAll('tr').forEach(row => {
                 const cell = row.children[3]?.querySelector('.auto-wrap-cell');
                 if (!cell || !cell.textContent.trim()) return;
@@ -706,7 +713,24 @@
                     if (earliestDate === null || dt < earliestDate) earliestDate = dt;
                 }
             });
-            if (earliestDate) cptCells.forEach(item => { if (item.dt.getTime() === earliestDate.getTime()) item.cell.classList.add('cpt-earliest'); });
+
+            // Aged Totes Table
+            agedTotesTbody.querySelectorAll('tr').forEach(row => {
+                const cell = row.children[3]?.querySelector('.auto-wrap-cell'); // 3. index -> CPT
+                if (!cell || !cell.textContent.trim() || cell.textContent.trim() === "-") return;
+                const dt = new Date(cell.textContent.trim());
+                if (!isNaN(dt.getTime())) {
+                    cptCells.push({ cell, dt });
+                    if (earliestDate === null || dt < earliestDate) earliestDate = dt;
+                }
+            });
+
+            if (earliestDate) {
+                cptCells.forEach(item => { 
+                    if (item.dt.getTime() === earliestDate.getTime()) item.cell.classList.add('cpt-earliest'); 
+                });
+            }
+            // -------------------------------------------------------------
 
             const actionPanel = document.getElementById('action-center-panel');
             const actionList = document.getElementById('action-center-list');
@@ -799,9 +823,11 @@
 
         function applyFilters() {
             const searchInput = document.getElementById("searchInput").value.toLowerCase();
-            const rows = document.getElementById("table-summary").querySelector('tbody').getElementsByTagName("tr");
-            for (let i = 0; i < rows.length; i++) {
-                const tr = rows[i];
+            
+            // Summary tablosunu filtreleme
+            const summaryRows = document.getElementById("table-summary").querySelector('tbody').getElementsByTagName("tr");
+            for (let i = 0; i < summaryRows.length; i++) {
+                const tr = summaryRows[i];
                 const batchId = tr.children[1]?.textContent.trim() || "";
                 if (!batchId) { tr.style.display = (searchInput === "" && !activeCardFilter) ? "" : "none"; continue; }
                 const textContent = tr.textContent.toLowerCase();
@@ -815,6 +841,15 @@
                     if (activeCardFilter === 'buffer_complete') matchesCard = (bufferStatus === 'Complete');
                 }
                 tr.style.display = (matchesSearch && matchesCard) ? "" : "none";
+            }
+
+            // Aged Totes tablosunu filtreleme
+            const agedTotesRows = document.getElementById("table-aged-totes").querySelector('tbody').getElementsByTagName("tr");
+            for (let i = 0; i < agedTotesRows.length; i++) {
+                const tr = agedTotesRows[i];
+                const textContent = tr.textContent.toLowerCase();
+                const matchesSearch = searchInput === "" || textContent.includes(searchInput);
+                tr.style.display = matchesSearch ? "" : "none";
             }
         }
 
@@ -834,32 +869,56 @@
             emptyRows.forEach(r => tbody.appendChild(r));
         }
 
-        let sortDirections = [];
+        let sortDirections = {
+            'table-summary': [],
+            'table-aged-totes': []
+        };
+
         function setupTableSorting() {
             document.querySelectorAll('#table-summary thead th').forEach((th, index) => {
                 th.style.cursor = 'pointer'; th.title = 'Sıralamak için tıklayın';
-                th.addEventListener('click', () => sortTable(index));
+                th.addEventListener('click', () => sortTable(index, 'table-summary'));
+            });
+
+            document.querySelectorAll('#table-aged-totes thead th').forEach((th, index) => {
+                th.style.cursor = 'pointer'; th.title = 'Sıralamak için tıklayın';
+                th.addEventListener('click', () => sortTable(index, 'table-aged-totes'));
             });
         }
 
-        function sortTable(columnIndex) {
-            const tbody = document.getElementById("table-summary").querySelector('tbody');
+        function sortTable(columnIndex, tableId) {
+            const tbody = document.getElementById(tableId).querySelector('tbody');
             let rows = Array.from(tbody.querySelectorAll('tr'));
-            let dataRows = rows.filter(r => r.children[1].textContent.trim() !== "");
-            let emptyRows = rows.filter(r => r.children[1].textContent.trim() === "");
-            let dir = sortDirections[columnIndex] === 'asc' ? 'desc' : 'asc';
-            sortDirections[columnIndex] = dir;
+            
+            let dataRows = rows;
+            let emptyRows = [];
+            
+            if (tableId === 'table-summary') {
+                dataRows = rows.filter(r => r.children[1].textContent.trim() !== "");
+                emptyRows = rows.filter(r => r.children[1].textContent.trim() === "");
+            }
+            
+            let dir = sortDirections[tableId] && sortDirections[tableId][columnIndex] === 'asc' ? 'desc' : 'asc';
+            if (!sortDirections[tableId]) sortDirections[tableId] = [];
+            sortDirections[tableId][columnIndex] = dir;
+            
             dataRows.sort((a, b) => {
                 let valA = a.children[columnIndex].textContent.trim(), valB = b.children[columnIndex].textContent.trim();
-                if (columnIndex === 11) {
+                
+                if (tableId === 'table-summary' && columnIndex === 11) {
                      let sA = parseFloat(a.children[11].querySelector('.auto-wrap-cell').getAttribute('data-score') || 0);
                      let sB = parseFloat(b.children[11].querySelector('.auto-wrap-cell').getAttribute('data-score') || 0);
                      return dir === 'asc' ? sA - sB : sB - sA;
                 }
-                if (isNaN(valA) && isNaN(valB) && !isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) return dir === 'asc' ? new Date(valA) - new Date(valB) : new Date(valB) - new Date(valA);
+                
+                if (isNaN(valA) && isNaN(valB) && !isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) {
+                    return dir === 'asc' ? new Date(valA) - new Date(valB) : new Date(valB) - new Date(valA);
+                }
+                
                 let cmp = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
                 return dir === 'asc' ? cmp : -cmp;
             });
+            
             tbody.innerHTML = '';
             dataRows.forEach(r => tbody.appendChild(r));
             emptyRows.forEach(r => tbody.appendChild(r));
