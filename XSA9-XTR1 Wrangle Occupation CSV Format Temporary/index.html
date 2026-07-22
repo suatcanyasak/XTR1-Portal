@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="tr" data-theme="light">
 <head>
@@ -316,15 +317,16 @@
         </div>
 
         <div class="main-container" id="aged-totes-container" style="display: none;">
-            <div class="table-title" style="background-color: #dc2626;">🚨 Late Totes (>2 Hours)</div>
+            <div class="table-title" style="background-color: #dc2626;">🚨 Late Totes (>30 Mins)</div>
             <div class="table-responsive">
                 <table class="data-table" id="table-aged-totes">
                     <thead>
                         <tr>
-                            <th style="width: 25%;">Process Path</th>
-                            <th style="width: 25%;">Tote (Scannable ID)</th>
-                            <th style="width: 25%;">CPT</th>
-                            <th style="width: 25%;">Stage</th>
+                            <th style="width: 20%; cursor: pointer;" onclick="sortAgedTable(0)">Batch ID ↕</th>
+                            <th style="width: 20%; cursor: pointer;" onclick="sortAgedTable(1)">Process Path ↕</th>
+                            <th style="width: 20%; cursor: pointer;" onclick="sortAgedTable(2)">Tote (Scannable ID) ↕</th>
+                            <th style="width: 20%; cursor: pointer;" onclick="sortAgedTable(3)">CPT ↕</th>
+                            <th style="width: 20%; cursor: pointer;" onclick="sortAgedTable(4)">Stage ↕</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -501,11 +503,17 @@
                 let stageLower = stage.toLowerCase();
                 let isTargetStage = stageLower.includes("inprogress") || stageLower.includes("intransit") || stageLower.includes("atdestination");
 
-                if (dwellTime > 2.0 && targetProcessPaths.includes(processPath) && isTargetStage) {
+                // DWELL TIME 2 saatten 30 dakikaya (0.5 saat) düşürüldü
+                if (dwellTime > 0.5 && targetProcessPaths.includes(processPath) && isTargetStage) {
                     if (!agedTotesMap.has(toteId)) {
                         let displayStage = stage.replace("PickingPicked", "");
                         agedTotesMap.set(toteId, {
-                            path: processPath, tote: toteId, cpt: cptValue, stage: displayStage, dwell: dwellTime.toFixed(2)
+                            batch: batchId,
+                            path: processPath, 
+                            tote: toteId, 
+                            cpt: cptValue, 
+                            stage: displayStage, 
+                            dwell: dwellTime.toFixed(2)
                         });
                     }
                 }
@@ -554,7 +562,6 @@
 
                     if (stat === "Sorted") {
                         let displayZone = zone.trim();
-                        // DÜZELTME: Eğer rbSM ile başlıyorsa sadece ilk 7 karakterini alıp set'e ekliyoruz
                         if (displayZone.startsWith("rbSM") && displayZone.length >= 7) {
                             displayZone = displayZone.substring(0, 7);
                         }
@@ -631,7 +638,7 @@
                 summaryTbody.appendChild(tr);
             });
 
-            // Gecikmiş Totelerin Eklenmesi
+            // Gecikmiş Totelerin Eklenmesi (Yeni format, auto-wrap-cell dahil)
             const agedTotesContainer = document.getElementById('aged-totes-container');
             const agedTotesTbody = document.getElementById('table-aged-totes').querySelector('tbody');
             agedTotesTbody.innerHTML = '';
@@ -640,6 +647,7 @@
                 agedTotesMap.forEach(item => {
                     let tr = document.createElement('tr');
                     tr.innerHTML = `
+                        <td><div class="auto-wrap-cell">${item.batch}</div></td>
                         <td><div class="auto-wrap-cell">${item.path}</div></td>
                         <td><div class="auto-wrap-cell" style="font-weight: bold; color: #ef4444;">${item.tote} <br><small style="color:#64748b;">(Dwell Time: ${item.dwell} hours)</small></div></td>
                         <td><div class="auto-wrap-cell">${item.cpt}</div></td>
@@ -652,7 +660,7 @@
                 agedTotesContainer.style.display = 'none';
             }
 
-            // En Erken CPT Renklendirme
+            // En Erken CPT Renklendirme (Summary İçin)
             let earliestDate = null;
             let cptCells = [];
             summaryTbody.querySelectorAll('tr').forEach(row => {
@@ -665,6 +673,20 @@
                 }
             });
             if (earliestDate) cptCells.forEach(item => { if (item.dt.getTime() === earliestDate.getTime()) item.cell.classList.add('cpt-earliest'); });
+
+            // En Erken CPT Renklendirme (Late Totes İçin)
+            let earliestDateAged = null;
+            let cptCellsAged = [];
+            agedTotesTbody.querySelectorAll('tr').forEach(row => {
+                const cell = row.children[3]?.querySelector('.auto-wrap-cell'); // CPT index 3
+                if (!cell || !cell.textContent.trim() || cell.textContent.trim() === "-") return;
+                const dt = new Date(cell.textContent.trim());
+                if (!isNaN(dt.getTime())) {
+                    cptCellsAged.push({ cell, dt });
+                    if (earliestDateAged === null || dt < earliestDateAged) earliestDateAged = dt;
+                }
+            });
+            if (earliestDateAged) cptCellsAged.forEach(item => { if (item.dt.getTime() === earliestDateAged.getTime()) item.cell.classList.add('cpt-earliest'); });
 
             // Aksiyon Merkezi Gösterimi
             const actionPanel = document.getElementById('action-center-panel');
@@ -758,6 +780,8 @@
 
         function applyFilters() {
             const searchInput = document.getElementById("searchInput").value.toLowerCase();
+            
+            // Summary Tablosu Filtreleme
             const rows = document.getElementById("table-summary").querySelector('tbody').getElementsByTagName("tr");
             for (let i = 0; i < rows.length; i++) {
                 const tr = rows[i];
@@ -774,6 +798,15 @@
                     if (activeCardFilter === 'buffer_complete') matchesCard = (bufferStatus === 'Complete');
                 }
                 tr.style.display = (matchesSearch && matchesCard) ? "" : "none";
+            }
+
+            // Late Totes Tablosu Filtreleme
+            const agedRows = document.getElementById("table-aged-totes").querySelector('tbody').getElementsByTagName("tr");
+            for (let i = 0; i < agedRows.length; i++) {
+                const tr = agedRows[i];
+                const textContent = tr.textContent.toLowerCase();
+                const matchesSearch = searchInput === "" || textContent.includes(searchInput);
+                tr.style.display = matchesSearch ? "" : "none";
             }
         }
 
@@ -822,6 +855,28 @@
             tbody.innerHTML = '';
             dataRows.forEach(r => tbody.appendChild(r));
             emptyRows.forEach(r => tbody.appendChild(r));
+        }
+
+        // --- LATE TOTES TABLOSU İÇİN SIRALAMA ---
+        let sortDirectionsAged = [];
+        function sortAgedTable(columnIndex) {
+            const tbody = document.getElementById("table-aged-totes").querySelector('tbody');
+            let rows = Array.from(tbody.querySelectorAll('tr'));
+            let dir = sortDirectionsAged[columnIndex] === 'asc' ? 'desc' : 'asc';
+            sortDirectionsAged[columnIndex] = dir;
+            rows.sort((a, b) => {
+                let valA = a.children[columnIndex].textContent.trim(), valB = b.children[columnIndex].textContent.trim();
+                // 3. Kolondaki (index 2) (Dwell Time: ...) metninden arındırmak için:
+                if(columnIndex === 2) {
+                    valA = valA.split('(')[0].trim();
+                    valB = valB.split('(')[0].trim();
+                }
+                if (isNaN(valA) && isNaN(valB) && !isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) return dir === 'asc' ? new Date(valA) - new Date(valB) : new Date(valB) - new Date(valA);
+                let cmp = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+                return dir === 'asc' ? cmp : -cmp;
+            });
+            tbody.innerHTML = '';
+            rows.forEach(r => tbody.appendChild(r));
         }
 
         // --- AYARLAR VE ODAK MODU ---
