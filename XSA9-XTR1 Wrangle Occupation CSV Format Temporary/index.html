@@ -408,7 +408,21 @@
                 const lines = text.split(/\r\n|\n/);
                 const parsedRows = lines.slice(1).map(line => {
                     return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => cell.replace(/^"|"$/g, '').trim());
-                }).filter(r => r.length > 1);
+                }).filter(r => {
+                    // Satır boşsa atla
+                    if (r.length <= 1) return false;
+                    
+                    // 14. Sütun (0 tabanlı sistemde index 13) değerini al
+                    const col14 = r[13];
+                    
+                    // Eğer ManifestPending veya ManifestPendingVerification ise bu satırı (false döndürerek) okuma
+                    if (col14 === "ManifestPending" || col14 === "ManifestPendingVerification" || col14 === "ProblemSolving" ) {
+                        return false;
+                    }
+                    
+                    // Diğer tüm durumlar için satırı dahil et
+                    return true;
+                });
                 
                 if (type === 'con4') con4Rows = parsedRows;
                 if (type === 'wip') wipRows = parsedRows;
@@ -532,11 +546,26 @@
             // 3. Hesaplamalar ve Summary Tablosunu Doldurma
             Object.keys(batches).forEach(batchId => {
                 let batchData = batches[batchId].data;
+                
+                // YENİ KURAL 1: Belirtilen statülerden en az 1 tanesi bile yoksa batch'i atla
+                const requiredStatuses = [
+                    "PickingNotYetPickedPrioritized", 
+                    "PickingNotYetPickedNotPrioritized", 
+                    "PickingNotYetPickedNonPickable", 
+                    "RebinBuffered", 
+                    "Sorted"
+                ];
+                const hasRequiredStatus = batchData.some(row => requiredStatuses.includes(row[13]));
+                
+                if (!hasRequiredStatus) return; // Batch'i atla (Tabloya yazdırma)
+
                 let cptValue = batches[batchId].cptValue;
                 let bufferNo = batches[batchId].bufferNo;
                 let processPath = batchData.length > 0 ? (batchData[0][9] || "-") : "-";
 
                 let pickStatus = "Complete", bufferStatus = "Complete", tumuBufferMi = true;
+                let hasSorted = false; // En az 1 tane Sorted var mı?
+                let allSorted = true;  // Hepsi Sorted mi?
                 let sortStatusSet = new Set(), localIP = new Set(), localIT = new Set(), localAD = new Set(), zoneNotYetQtyDict = {};
                 let totalQty = 0, pickedQty = 0, bufferedQty = 0;
 
@@ -561,18 +590,28 @@
                     }
 
                     if (stat === "Sorted") {
+                        hasSorted = true; // YENİ KURAL 2 İÇİN BAYRAK
                         let displayZone = zone.trim();
                         if (displayZone.startsWith("rbSM") && displayZone.length >= 7) {
                             displayZone = displayZone.substring(0, 7);
                         }
                         sortStatusSet.add(displayZone);
+                    } else {
+                        allSorted = false; // YENİ KURAL 3 İÇİN BAYRAK (Biri bile Sorted değilse false olur)
                     }
+
                     if (stat === "PickingPickedInProgress") localIP.add(zone);
                     if (stat === "PickingPickedInTransit") localIT.add(zone);
                     if (stat === "PickingPickedAtDestination") localAD.add(zone);
                 });
 
                 if (!tumuBufferMi) bufferStatus = "Continue";
+                
+                // YENİ KURAL 2: En az 1 tanesi Sorted ise buffer status zorunlu "Complete" olsun
+                if (hasSorted) {
+                    bufferStatus = "Complete";
+                }
+
                 let pickPercent = totalQty > 0 ? (pickedQty / totalQty) * 100 : (pickStatus === "Complete" ? 100 : 0);
                 let bufferPercent = totalQty > 0 ? (bufferedQty / totalQty) * 100 : (bufferStatus === "Complete" ? 100 : 0);
 
@@ -622,7 +661,13 @@
                     applyProgressBar(bufferCell, bufferPercent);
                 }
 
-                tr.children[6].querySelector('.auto-wrap-cell').textContent = sortStatusSet.size > 0 ? [...sortStatusSet].join(' - ') : (bufferStatus === "Complete" ? "Not Started" : "-");
+                // YENİ KURAL 3: Sort Status'u yazdırırken tümü Sorted ise yanına (✓) ekle
+                let sortStatusText = sortStatusSet.size > 0 ? [...sortStatusSet].join(' - ') : (bufferStatus === "Complete" ? "Not Started" : "-");
+                if (allSorted && sortStatusSet.size > 0) {
+                    sortStatusText += " (✓)";
+                }
+                tr.children[6].querySelector('.auto-wrap-cell').textContent = sortStatusText;
+                
                 tr.children[7].querySelector('.auto-wrap-cell').textContent = localIP.size > 0 ? [...localIP].join(' - ') : "-";
                 tr.children[8].querySelector('.auto-wrap-cell').textContent = localIT.size > 0 ? [...localIT].join(' - ') : "-";
                 tr.children[9].querySelector('.auto-wrap-cell').textContent = localAD.size > 0 ? [...localAD].join(' - ') : "-";
