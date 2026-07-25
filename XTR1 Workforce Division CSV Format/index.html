@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -20,6 +21,7 @@
             --table-header: #f1f5f9;
             --highlight: #fef2f2;
             --selected-row: #dbeafe;
+            --selected-border: #2563eb;
             --kpi-bg: #eff6ff;
             --kpi-border: #bfdbfe;
             --kpi-text: #1e40af;
@@ -37,6 +39,7 @@
             --table-header: #334155;
             --highlight: #451a03;
             --selected-row: #1e3a8a;
+            --selected-border: #3b82f6;
             --kpi-bg: #172554;
             --kpi-border: #1e3a8a;
             --kpi-text: #93c5fd;
@@ -105,7 +108,7 @@
             color: var(--text-muted);
         }
 
-        .input-group input {
+        .input-group input[type="datetime-local"], .input-group input[type="number"] {
             width: 100%;
             padding: 8px;
             background: var(--background);
@@ -136,6 +139,53 @@
             font-size: 13px;
             color: #3b82f6;
             display: block;
+        }
+        
+        /* CPT Çoklu Seçim Tablosu Stilleri (Görsel Odaklı) */
+        .cpt-table-container {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            background: var(--background);
+        }
+        .cpt-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            text-align: left;
+        }
+        .cpt-table th {
+            position: sticky;
+            top: 0;
+            background: var(--table-header);
+            color: var(--primary);
+            padding: 10px 12px;
+            font-weight: bold;
+            border-bottom: 1px solid var(--border);
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .cpt-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            border-left: 4px solid transparent;
+        }
+        .cpt-table tr {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .cpt-table tr:hover td {
+            background: var(--table-header);
+        }
+        .cpt-table tr.selected td {
+            background: var(--selected-row);
+            border-left-color: var(--selected-border);
+            font-weight: bold;
         }
 
         .pph-table {
@@ -456,16 +506,19 @@
                 <input type="file" id="csvFile" accept=".csv" style="display:none">
             </div>
 
-            <h3 style="font-size:14px; border-bottom:1px solid var(--border); padding-bottom:4px; margin-top:20px; color:var(--primary);">🕒 TARİH & CPT ARALIĞI</h3>
-           
-            <div class="input-group">
-                <label>Başlangıç Zamanı (CPT)</label>
-                <input type="datetime-local" id="filterStartDate">
+            <div class="cpt-table-container">
+                <table class="cpt-table" id="cptTable">
+                    <thead>
+                        <tr>
+                            <th>🕒 CPT SEÇİMİ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cptTableBody">
+                        <tr><td style="text-align: center; color: var(--text-muted);">Veri bekleniyor...</td></tr>
+                    </tbody>
+                </table>
             </div>
-            <div class="input-group">
-                <label>Bitiş Zamanı (CPT)</label>
-                <input type="datetime-local" id="filterEndDate">
-            </div>
+            <small style="display:block; font-size:11px; color:var(--text-muted); margin-bottom:15px; text-align:center; line-height: 1.4;">Birden fazla seçim yapabilirsiniz. Hiçbir şey seçmezseniz tüm liste dâhil edilir.</small>
 
             <div class="input-group" style="background-color: rgba(59, 130, 246, 0.08); padding: 10px; border-radius: 6px; border: 1px solid #bfdbfe; margin-top: 15px;">
                 <label style="color: var(--primary); font-weight: bold; margin-bottom: 4px;">⏱️ Hesaplama Başlangıç Zamanı</label>
@@ -612,7 +665,6 @@
 </div>
 
 <script>
-    // D KORİDOR HARİTALARI (SET MANTIĞI İLE O(1) HIZLI SORGULAMA)
     const D_1_1_SET = new Set(["P-1-D201A200","P-1-D201A210","P-1-D201A220","P-1-D201A230","P-1-D201A240","P-1-D202A200","P-1-D202A210","P-1-D202A220","P-1-D202A230","P-1-D202A240","P-1-D202A420","P-1-D203A200","P-1-D203A210","P-1-D203A220","P-1-D203A230","P-1-D203A240","P-1-D204A200","P-1-D204A210","P-1-D204A220","P-1-D204A230","P-1-D204A240","P-1-D205A200","P-1-D205A210","P-1-D205A220","P-1-D205A230","P-1-D205A240","P-1-D205A330","P-1-D206A200","P-1-D206A210","P-1-D206A220","P-1-D206A230","P-1-D206A240","P-1-D207A200","P-1-D207A210","P-1-D207A220","P-1-D207A230","P-1-D207A240","P-1-D208A200","P-1-D208A210","P-1-D208A220","P-1-D208A230","P-1-D208A240","P-1-D209A200","P-1-D209A210","P-1-D209A220","P-1-D209A230","P-1-D209A240","P-1-D210A200","P-1-D210A210","P-1-D210A220","P-1-D210A230","P-1-D210A240","P-1-D211A200","P-1-D211A210","P-1-D211A220","P-1-D211A230","P-1-D211A240","P-1-D212A200","P-1-D212A210","P-1-D212A220","P-1-D212A230","P-1-D212A240","P-1-D213A200","P-1-D213A210","P-1-D213A220","P-1-D213A230","P-1-D213A240","P-1-D214A200","P-1-D214A210","P-1-D214A220","P-1-D214A230","P-1-D214A240","P-1-D215A200","P-1-D215A210","P-1-D215A220","P-1-D215A230","P-1-D215A240","P-1-D216A200","P-1-D216A210","P-1-D216A220","P-1-D216A230","P-1-D216A240","P-1-D217A200","P-1-D217A210","P-1-D217A220","P-1-D217A230","P-1-D217A240","P-1-D218A200","P-1-D218A210","P-1-D218A220","P-1-D218A230","P-1-D218A240"]);
     const D_1_2_SET = new Set(["P-1-D201A260","P-1-D201A300","P-1-D201A310","P-1-D201A320","P-1-D201A340","P-1-D201A350","P-1-D201A360","P-1-D201A370","P-1-D201A380","P-1-D201A390","P-1-D201A400","P-1-D201A410","P-1-D202A290","P-1-D202A300","P-1-D202A310","P-1-D202A320","P-1-D202A330","P-1-D202A350","P-1-D202A360","P-1-D202A380","P-1-D202A390","P-1-D202A400","P-1-D203A260","P-1-D203A270","P-1-D203A280","P-1-D203A290","P-1-D203A300","P-1-D203A310","P-1-D203A320","P-1-D203A330","P-1-D203A340","P-1-D203A350","P-1-D203A360","P-1-D203A370","P-1-D203A380","P-1-D203A390","P-1-D203A400","P-1-D204A260","P-1-D204A270","P-1-D204A280","P-1-D204A290","P-1-D204A300","P-1-D204A310","P-1-D204A320","P-1-D204A330","P-1-D204A340","P-1-D204A350","P-1-D204A360","P-1-D204A370","P-1-D204A380","P-1-D204A390","P-1-D204A400","P-1-D205A260","P-1-D205A270","P-1-D205A280","P-1-D205A290","P-1-D205A300","P-1-D205A310","P-1-D205A320","P-1-D205A330","P-1-D205A340","P-1-D205A350","P-1-D205A360","P-1-D205A370","P-1-D205A380","P-1-D205A390","P-1-D205A400","P-1-D206A260","P-1-D206A270","P-1-D206A280","P-1-D206A290","P-1-D206A300","P-1-D206A310","P-1-D206A320","P-1-D206A330","P-1-D206A340","P-1-D206A350","P-1-D206A360","P-1-D206A370","P-1-D206A380","P-1-D206A390","P-1-D206A400","P-1-D207A260","P-1-D207A270","P-1-D207A280","P-1-D207A290","P-1-D207A300","P-1-D207A310","P-1-D207A320","P-1-D207A330","P-1-D207A340","P-1-D207A350","P-1-D207A360","P-1-D207A370","P-1-D207A380","P-1-D207A390","P-1-D207A400","P-1-D208A260","P-1-D208A270","P-1-D208A280","P-1-D208A290","P-1-D208A300","P-1-D208A310","P-1-D208A320","P-1-D208A330","P-1-D208A340","P-1-D208A350","P-1-D208A360","P-1-D208A370","P-1-D208A380","P-1-D208A390","P-1-D208A400","P-1-D209A260","P-1-D209A270","P-1-D209A280","P-1-D209A290","P-1-D209A300","P-1-D209A310","P-1-D209A320","P-1-D209A330","P-1-D209A340","P-1-D209A350","P-1-D209A360","P-1-D209A370","P-1-D209A380","P-1-D209A390","P-1-D209A400","P-1-D210A260","P-1-D210A270","P-1-D210A280","P-1-D210A290","P-1-D210A300","P-1-D210A310","P-1-D210A320","P-1-D210A330","P-1-D210A340","P-1-D210A350","P-1-D210A360","P-1-D210A370","P-1-D210A380","P-1-D210A390","P-1-D210A400","P-1-D211A260","P-1-D211A270","P-1-D211A280","P-1-D211A290","P-1-D211A300","P-1-D211A310","P-1-D211A320","P-1-D211A330","P-1-D211A340","P-1-D211A350","P-1-D211A360","P-1-D211A370","P-1-D211A380","P-1-D211A390","P-1-D211A400","P-1-D212A260","P-1-D212A270","P-1-D212A280","P-1-D212A290","P-1-D212A300","P-1-D212A310","P-1-D212A320","P-1-D212A330","P-1-D212A340","P-1-D212A350","P-1-D212A360","P-1-D212A370","P-1-D212A380","P-1-D212A390","P-1-D212A400","P-1-D213A260","P-1-D213A270","P-1-D213A280","P-1-D213A290","P-1-D213A300","P-1-D213A310","P-1-D213A320","P-1-D213A330","P-1-D213A340","P-1-D213A350","P-1-D213A360","P-1-D213A370","P-1-D213A380","P-1-D213A390","P-1-D213A400","P-1-D214A260","P-1-D214A270","P-1-D214A280","P-1-D214A290","P-1-D214A300","P-1-D214A310","P-1-D214A320","P-1-D214A330","P-1-D214A340","P-1-D214A350","P-1-D214A360","P-1-D214A370","P-1-D214A380","P-1-D214A390","P-1-D214A400","P-1-D215A260","P-1-D215A270","P-1-D215A280","P-1-D215A290","P-1-D215A300","P-1-D215A310","P-1-D215A320","P-1-D215A330","P-1-D215A340","P-1-D215A350","P-1-D215A360","P-1-D215A370","P-1-D215A380","P-1-D215A390","P-1-D215A400","P-1-D216A260","P-1-D216A270","P-1-D216A280","P-1-D216A290","P-1-D216A300","P-1-D216A310","P-1-D216A320","P-1-D216A330","P-1-D216A340","P-1-D216A350","P-1-D216A360","P-1-D216A370","P-1-D216A380","P-1-D216A390","P-1-D216A400","P-1-D217A260","P-1-D217A270","P-1-D217A280","P-1-D217A290","P-1-D217A300","P-1-D217A310","P-1-D217A320","P-1-D217A330","P-1-D217A340","P-1-D217A350","P-1-D217A360","P-1-D217A370","P-1-D217A380","P-1-D217A390","P-1-D217A400","P-1-D218A260","P-1-D218A270","P-1-D218A280","P-1-D218A290","P-1-D218A300","P-1-D218A310","P-1-D218A320","P-1-D218A330","P-1-D218A340","P-1-D218A350","P-1-D218A360","P-1-D218A370","P-1-D218A380","P-1-D218A390","P-1-D218A400"]);
     const D_1_3_SET = new Set(["P-1-D201A420","P-1-D201A430","P-1-D201A440","P-1-D201A450","P-1-D201A460","P-1-D201A470","P-1-D201A480","P-1-D201A490","P-1-D201A500","P-1-D201A510","P-1-D201A520","P-1-D202A430","P-1-D202A440","P-1-D202A450","P-1-D202A460","P-1-D202A470","P-1-D202A480","P-1-D202A490","P-1-D202A500","P-1-D202A510","P-1-D202A520","P-1-D203A420","P-1-D203A430","P-1-D203A440","P-1-D203A450","P-1-D203A460","P-1-D203A470","P-1-D203A480","P-1-D203A490","P-1-D203A500","P-1-D203A510","P-1-D203A520","P-1-D204A420","P-1-D204A430","P-1-D204A440","P-1-D204A450","P-1-D204A460","P-1-D204A470","P-1-D204A480","P-1-D204A490","P-1-D204A500","P-1-D204A510","P-1-D204A520","P-1-D205A420","P-1-D205A430","P-1-D205A440","P-1-D205A450","P-1-D205A460","P-1-D205A470","P-1-D205A480","P-1-D205A490","P-1-D205A500","P-1-D205A510","P-1-D205A520","P-1-D206A420","P-1-D206A430","P-1-D206A440","P-1-D206A450","P-1-D206A460","P-1-D206A470","P-1-D206A480","P-1-D206A490","P-1-D206A500","P-1-D206A510","P-1-D206A520","P-1-D207A420","P-1-D207A430","P-1-D207A440","P-1-D207A450","P-1-D207A460","P-1-D207A470","P-1-D207A480","P-1-D207A490","P-1-D207A500","P-1-D207A510","P-1-D207A520","P-1-D208A420","P-1-D208A430","P-1-D208A440","P-1-D208A450","P-1-D208A460","P-1-D208A470","P-1-D208A480","P-1-D208A490","P-1-D208A500","P-1-D208A510","P-1-D208A520","P-1-D209A420","P-1-D209A430","P-1-D209A440","P-1-D209A450","P-1-D209A460","P-1-D209A470","P-1-D209A480","P-1-D209A490","P-1-D209A500","P-1-D209A510","P-1-D209A520","P-1-D210A420","P-1-D210A430","P-1-D210A440","P-1-D210A450","P-1-D210A460","P-1-D210A470","P-1-D210A480","P-1-D210A490","P-1-D210A500","P-1-D210A510","P-1-D210A520","P-1-D211A420","P-1-D211A430","P-1-D211A440","P-1-D211A450","P-1-D211A460","P-1-D211A470","P-1-D211A480","P-1-D211A490","P-1-D211A500","P-1-D211A510","P-1-D212A420","P-1-D212A430","P-1-D212A440","P-1-D212A450","P-1-D212A460","P-1-D212A470","P-1-D212A480","P-1-D212A490","P-1-D212A500","P-1-D212A510","P-1-D213A420","P-1-D213A430","P-1-D213A440","P-1-D213A450","P-1-D213A460","P-1-D213A470","P-1-D213A480","P-1-D213A490","P-1-D213A500","P-1-D213A510","P-1-D213A520","P-1-D214A420","P-1-D214A430","P-1-D214A440","P-1-D214A450","P-1-D214A460","P-1-D214A470","P-1-D214A480","P-1-D214A490","P-1-D214A500","P-1-D214A510","P-1-D214A520","P-1-D215A420","P-1-D215A430","P-1-D215A440","P-1-D215A450","P-1-D215A460","P-1-D215A470","P-1-D215A480","P-1-D215A490","P-1-D215A500","P-1-D215A510","P-1-D215A520","P-1-D216A420","P-1-D216A430","P-1-D216A440","P-1-D216A450","P-1-D216A460","P-1-D216A470","P-1-D216A480","P-1-D216A490","P-1-D216A500","P-1-D216A510","P-1-D216A520","P-1-D217A420","P-1-D217A430","P-1-D217A440","P-1-D217A450","P-1-D217A460","P-1-D217A470","P-1-D217A480","P-1-D217A490","P-1-D217A500","P-1-D217A510","P-1-D217A520","P-1-D218A420","P-1-D218A430","P-1-D218A440","P-1-D218A450","P-1-D218A460","P-1-D218A470","P-1-D218A480","P-1-D218A490","P-1-D218A500","P-1-D218A510","P-1-D218A520"]);
@@ -622,6 +674,9 @@
     let ppChartInstance = null;
     let zoneChartInstance = null;
     let selectedProcessPathFilter = null;
+    
+    let allUniqueCPTs = [];
+    let selectedCPTs = new Set();
     
     const PATH_GROUPS = ["SINGLE", "MULTI", "SINGLE NONSORT", "MULTI NONSORT", "GIFT SINGLE", "GIFT MULTI"];
     const ZONE_HEADERS = ["A-HRV", "A", "D", "E"];
@@ -713,8 +768,8 @@
     function parseCSV(text) {
         const lines = text.split(/\r?\n/);
         rawData = [];
-        let minDate = null;
-        let maxDate = null;
+        allUniqueCPTs = [];
+        
         for(let i = 1; i < lines.length; i++) {
             let line = lines[i].trim();
             if(!line) continue;
@@ -746,27 +801,58 @@
             if (cleanRow[COL_CPT]) {
                 let timeParsed = Date.parse(cleanRow[COL_CPT].replace(/"/g, ''));
                 if(!isNaN(timeParsed)){
-                    if(!minDate || timeParsed < minDate) minDate = timeParsed;
-                    if(!maxDate || timeParsed > maxDate) maxDate = timeParsed;
-                 }
+                    if(!allUniqueCPTs.includes(timeParsed)) {
+                        allUniqueCPTs.push(timeParsed);
+                    }
+                }
             }
         }
 
-        if (minDate && maxDate) {
-            const formatForInput = (timestamp) => {
-                let d = new Date(timestamp);
-                let offset = d.getTimezoneOffset();
-                d = new Date(d.getTime() - (offset * 60 * 1000));
-                return d.toISOString().slice(0, 16);
-            };
-            document.getElementById('filterStartDate').value = formatForInput(minDate);
-            document.getElementById('filterEndDate').value = formatForInput(maxDate);
-        }
-
+        allUniqueCPTs.sort((a,b) => a - b);
+        selectedCPTs.clear();
+        
+        renderCPTTable();
         setCurrentTimeToInput();
         selectedProcessPathFilter = null;
         document.querySelectorAll('.clickable-row').forEach(r => r.classList.remove('selected-filter'));
         processData(rawData);
+    }
+    
+    function renderCPTTable() {
+        const tbody = document.getElementById('cptTableBody');
+        tbody.innerHTML = '';
+        
+        if(allUniqueCPTs.length === 0) {
+            tbody.innerHTML = '<tr><td style="text-align: center; color: var(--text-muted);">Veri bulunamadı</td></tr>';
+            return;
+        }
+        
+        allUniqueCPTs.forEach(timestamp => {
+            let dateObj = new Date(timestamp);
+            let dayName = dateObj.toLocaleString('tr-TR', { day:'2-digit', month:'short' });
+            let timeName = dateObj.toLocaleString('tr-TR', { hour:'2-digit', minute:'2-digit' });
+            let dateStr = `${dayName} ${timeName}`;
+            
+            let tr = document.createElement('tr');
+            let isSelected = selectedCPTs.has(timestamp);
+            if(isSelected) tr.classList.add('selected');
+            
+            tr.innerHTML = `
+                <td style="font-weight: 500;">${dateStr}</td>
+            `;
+            
+            tr.addEventListener('click', () => {
+                if(selectedCPTs.has(timestamp)) {
+                    selectedCPTs.delete(timestamp);
+                } else {
+                    selectedCPTs.add(timestamp);
+                }
+                renderCPTTable(); 
+                processData(rawData); 
+            });
+            
+            tbody.appendChild(tr);
+        });
     }
 
     function getGroupKey(ppStr) {
@@ -827,13 +913,12 @@
                     corridor = `A-${floorNum}.1`; 
                 }
             } else if (zone === "D") {
-                // D KORİDOR TESPİTİ
                 let prefix12 = clean.substring(0, 12);
                 if (D_1_1_SET.has(prefix12)) corridor = "D-1.1";
                 else if (D_1_2_SET.has(prefix12)) corridor = "D-1.2";
                 else if (D_1_3_SET.has(prefix12)) corridor = "D-1.3";
                 else if (D_1_4_SET.has(prefix12)) corridor = "D-1.4";
-                else corridor = "D-1.1"; // Varsayılan veya tanımlanmamış ise 1.1'e atsın
+                else corridor = "D-1.1"; 
             } else if (zone === "E") {
                 corridor = "E";
             }
@@ -856,7 +941,7 @@
             let floorNum = c.split('-')[1].split('.')[0];
             return floorNum + "-A";
         }
-        if (c.startsWith("D-")) return "1-D"; // Tüm D koridorları 1-D katındadır
+        if (c.startsWith("D-")) return "1-D"; 
         if (c === "E") return "1-E";
         return "1-A";
     }
@@ -988,11 +1073,7 @@
         if(data.length === 0) return;
 
         const mevcutPersonel = parseFloat(document.getElementById('mevcutPersonel').value) || 0;
-        let startInput = document.getElementById('filterStartDate').value;
-        let endInput = document.getElementById('filterEndDate').value;
-        let userStartTime = startInput ? Date.parse(startInput) : 0;
-        let userEndTime = endInput ? Date.parse(endInput) : Infinity;
-
+        
         let ppTotals = {}; 
         PATH_GROUPS.forEach(p => ppTotals[p] = 0);
         let globalZoneTotals = {}; 
@@ -1020,16 +1101,18 @@
             if(!rawPP || !rawLoc) return;
 
             let rowCptTime = Date.parse(rawCPT.replace(/"/g, ''));
-            if (!isNaN(rowCptTime)) {
-                if (rowCptTime < userStartTime || rowCptTime > userEndTime) return; 
-                
-                if (!cptData[rowCptTime]) {
-                    cptData[rowCptTime] = {};
-                    PATH_GROUPS.forEach(p => {
-                        cptData[rowCptTime][p] = { total: 0, zones: {} };
-                        ZONE_HEADERS.forEach(z => cptData[rowCptTime][p].zones[z] = 0);
-                    });
-                }
+            if (isNaN(rowCptTime)) return;
+            
+            if (selectedCPTs.size > 0 && !selectedCPTs.has(rowCptTime)) {
+                return;
+            }
+            
+            if (!cptData[rowCptTime]) {
+                cptData[rowCptTime] = {};
+                PATH_GROUPS.forEach(p => {
+                    cptData[rowCptTime][p] = { total: 0, zones: {} };
+                    ZONE_HEADERS.forEach(z => cptData[rowCptTime][p].zones[z] = 0);
+                });
             }
 
             let group = getGroupKey(rawPP);
@@ -1040,7 +1123,7 @@
             floorMatrix[group][locInfo.floor] += qty;
             corridorMatrix[group][locInfo.corridor] += qty; 
 
-            if (!isNaN(rowCptTime) && cptData[rowCptTime] && cptData[rowCptTime][group]) {
+            if (cptData[rowCptTime] && cptData[rowCptTime][group]) {
                  cptData[rowCptTime][group].total += qty;
                  cptData[rowCptTime][group].zones[locInfo.zone] += qty;
             }
@@ -1092,7 +1175,6 @@
         corridorHTML += "</tbody>";
         document.getElementById('corridorTable').innerHTML = corridorHTML;
 
-        // KAPASİTE YÖNETİMİ 
         let anaIhtiyacToplam = 0;
         const corePaths = ["SINGLE", "MULTI", "SINGLE NONSORT", "MULTI NONSORT"];
         corePaths.forEach(p => anaIhtiyacToplam += calculateRawDemand(p));
@@ -1112,7 +1194,6 @@
             templatesObj[p] = generateAssignmentsTemplate(p, katsayiAna);
         });
 
-        // ETA HESAPLAMA SİMÜLASYONU
         document.getElementById('kpiPanel').style.display = "grid";
         let totalWorkHours = 0;
         
@@ -1134,7 +1215,6 @@
             sürecektir.
         `;
 
-        // BACKLOG SİMÜLASYONU
         let calcStartInput = document.getElementById('calculationStartTime').value;
         let currentTime = calcStartInput ? Date.parse(calcStartInput) : Date.now(); 
         let simClock = currentTime; 
@@ -1186,7 +1266,7 @@
         let hesaplamaSaatiStr = new Date(currentTime).toLocaleString('tr-TR', { day:'2-digit', month:'short', hour: '2-digit', minute:'2-digit' });
 
         if (totalBacklogSystemWide <= 0) {
-             backlogBoxContent += `<div style="margin-top:10px; color:#166534;">✅ Güncelleme saati olan <strong>${hesaplamaSaatiStr}</strong> itibarıyla mevcut personel gücüyle tüm işler CPT hedeflerinden önce bitiyor. Backlog bulunmamaktadır.</div>`;
+             backlogBoxContent += `<div style="margin-top:10px; color:#166534;">✅ Güncelleme saati olan <strong>${hesaplamaSaatiStr}</strong> itibarıyla seçili CPT'lerde mevcut personel gücüyle tüm işler hedeflerden önce bitiyor. Backlog bulunmamaktadır.</div>`;
         } else {
              backlogBoxContent += `<div style="margin-bottom:8px; font-size:12px;">Güncelleme saati olan <strong>${hesaplamaSaatiStr}</strong> baz alınarak simülasyon yapılmıştır. Toplam Backlog: <strong>${totalBacklogSystemWide.toLocaleString()} adet</strong>.</div>`;
              backlogBoxContent += `<div style="overflow-x: auto; max-width: 100%; border: 1px solid var(--border); border-radius: 6px;">
@@ -1217,9 +1297,13 @@
              });
              backlogBoxContent += `</tbody></table></div>`;
         }
+        
+        if (sortedCpts.length === 0) {
+            backlogBoxContent = `<strong>🚨 ZAMAN ÇİZELGELİ KALAN İŞ (BACKLOG) TABLOSU</strong><div style="margin-top:10px; color:var(--text-muted);">Bu aralıkta veri bulunmamaktadır.</div>`;
+        }
+        
         document.getElementById('kpiBacklogBox').innerHTML = backlogBoxContent;
 
-        // AKILLI DAĞITIM MOTORU - BÖLGE/KAT/KORİDOR ENTEGRE YAPISI
         function runSmartAllocationEngine(pKey, templates, kVal, isGift = false) {
             if (!templates || templates.length === 0) {
                 return { floorHTML: "<div>0 Kişi</div>", zoneHTML: "<div>0 Kişi</div>", corridorHTML: "<div>0 Kişi</div>", count: 0 };
@@ -1301,7 +1385,6 @@
                     corridorSummary[item.name] = (corridorSummary[item.name] || 0) + item.qty;
                 });
                 
-                // ---- BÖLGE (ZONE) ETİKETİ ----
                 let actualZonesList = Object.keys(zoneSummary).sort();
                 let actualZoneLabel = actualZonesList.join(" - ");
                 if (actualZonesList.length === 0) actualZoneLabel = person.baseLabel || "Belirsiz";
@@ -1309,7 +1392,6 @@
                 let zoneBadge = isGift ? '<span class="badge-gift">GIFT</span>' : (isActuallyFixedZone ? '<span class="badge-fixed">Sabit</span>' : '<span class="badge-flex">Esnek</span>');
                 zoneLines.push(`<div>1 Kişi (${actualZoneLabel}) ${zoneBadge}</div>`);
                 
-                // ---- KAT (FLOOR) ETİKETİ ----
                 let floorStr = "Kat Yok";
                 let floorQtyStr = "0.0";
                 let floorKeys = Object.keys(floorSummary).sort();
@@ -1321,7 +1403,6 @@
                 let floorBadge = isGift ? '<span class="badge-gift">GIFT</span>' : (isActuallyFixedFloor ? '<span class="badge-fixed">Sabit Kat</span>' : '<span class="badge-flex">Esnek Kat</span>');
                 floorLines.push(`<div>1 Kişi (${floorStr}) [${floorQtyStr} Adet] (${actualZoneLabel}) ${floorBadge}</div>`);
 
-                // ---- KORİDOR (CORRIDOR) ETİKETİ ----
                 let corridorStr = "Koridor Yok";
                 let corridorQtyStr = "0.0";
                 let corridorKeys = Object.keys(corridorSummary).sort();
