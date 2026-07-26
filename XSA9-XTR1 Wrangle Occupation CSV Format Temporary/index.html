@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="tr" data-theme="light">
 <head>
@@ -671,7 +672,12 @@
                 tr.children[7].querySelector('.auto-wrap-cell').textContent = localIP.size > 0 ? [...localIP].join(' - ') : "-";
                 tr.children[8].querySelector('.auto-wrap-cell').textContent = localIT.size > 0 ? [...localIT].join(' - ') : "-";
                 tr.children[9].querySelector('.auto-wrap-cell').textContent = localAD.size > 0 ? [...localAD].join(' - ') : "-";
-                tr.children[10].querySelector('.auto-wrap-cell').textContent = Object.keys(zoneNotYetQtyDict).length > 0 ? Object.keys(zoneNotYetQtyDict).map(z => `${z}: ${zoneNotYetQtyDict[z]}`).join(' - ') : "-";
+                
+                // NotYetPicked hücresi için toplam miktarı hesapla ve 'data-qty' olarak hücreye ekle
+                let totalNotYetQty = Object.values(zoneNotYetQtyDict).reduce((sum, val) => sum + val, 0);
+                let notYetPickedCell = tr.children[10].querySelector('.auto-wrap-cell');
+                notYetPickedCell.textContent = Object.keys(zoneNotYetQtyDict).length > 0 ? Object.keys(zoneNotYetQtyDict).map(z => `${z}: ${zoneNotYetQtyDict[z]}`).join(' - ') : "-";
+                notYetPickedCell.setAttribute('data-qty', totalNotYetQty);
 
                 let riskCell = tr.children[11].querySelector('.auto-wrap-cell');
                 riskCell.textContent = riskScore > 0 ? riskScore.toFixed(0) + "/100" : "0/100";
@@ -888,11 +894,21 @@
             sortDirections[columnIndex] = dir;
             dataRows.sort((a, b) => {
                 let valA = a.children[columnIndex].textContent.trim(), valB = b.children[columnIndex].textContent.trim();
+                
+                // NOT YET PICKED sütunu (index 10) için özel toplam miktara göre sıralama
+                if (columnIndex === 10) {
+                     let qA = parseFloat(a.children[10].querySelector('.auto-wrap-cell').getAttribute('data-qty') || 0);
+                     let qB = parseFloat(b.children[10].querySelector('.auto-wrap-cell').getAttribute('data-qty') || 0);
+                     return dir === 'asc' ? qA - qB : qB - qA;
+                }
+    
+                // RISK sütunu (index 11) için özel skora göre sıralama
                 if (columnIndex === 11) {
                      let sA = parseFloat(a.children[11].querySelector('.auto-wrap-cell').getAttribute('data-score') || 0);
                      let sB = parseFloat(b.children[11].querySelector('.auto-wrap-cell').getAttribute('data-score') || 0);
                      return dir === 'asc' ? sA - sB : sB - sA;
                 }
+    
                 if (isNaN(valA) && isNaN(valB) && !isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) return dir === 'asc' ? new Date(valA) - new Date(valB) : new Date(valB) - new Date(valA);
                 let cmp = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
                 return dir === 'asc' ? cmp : -cmp;
