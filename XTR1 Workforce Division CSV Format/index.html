@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -418,7 +417,7 @@
 
         .wf-grid-container {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
+            grid-template-columns: repeat(4, 1fr); /* 8 Kutu Sığması İçin Güncellendi */
             gap: 12px;
         }
 
@@ -608,6 +607,9 @@
                                     <tr class="clickable-row" data-path="MULTI NONSORT"><td>MULTI NONSORT</td><td class="highlight-cell">0</td></tr>
                                     <tr class="clickable-row" data-path="GIFT SINGLE"><td>GIFT SINGLE</td><td class="highlight-cell">0</td></tr>
                                     <tr class="clickable-row" data-path="GIFT MULTI"><td>GIFT MULTI</td><td class="highlight-cell">0</td></tr>
+                                    <!-- Yeni Eklenen Satırlar -->
+                                    <tr class="clickable-row" data-path="PPSLAP"><td>PPSLAP</td><td class="highlight-cell">0</td></tr>
+                                    <tr class="clickable-row" data-path="PPSLAP NONSORT"><td>PPSLAP NONSORT</td><td class="highlight-cell">0</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -678,7 +680,8 @@
     let allUniqueCPTs = [];
     let selectedCPTs = new Set();
     
-    const PATH_GROUPS = ["SINGLE", "MULTI", "SINGLE NONSORT", "MULTI NONSORT", "GIFT SINGLE", "GIFT MULTI"];
+    // PATH_GROUPS güncellendi
+    const PATH_GROUPS = ["SINGLE", "MULTI", "SINGLE NONSORT", "MULTI NONSORT", "GIFT SINGLE", "GIFT MULTI", "PPSLAP", "PPSLAP NONSORT"];
     const ZONE_HEADERS = ["A-HRV", "A", "D", "E"];
     const FLOOR_HEADERS = ["A-HRV", "1-A", "2-A", "3-A", "4-A", "1-D", "1-E"];
     const CORRIDOR_HEADERS = ["A-HRV", "A-1.1", "A-1.2", "A-1.3", "A-2.1", "A-2.2", "A-2.3", "A-3.1", "A-3.2", "A-3.3", "A-4.1", "A-4.2", "A-4.3", "D-1.1", "D-1.2", "D-1.3", "D-1.4", "E"];
@@ -855,16 +858,24 @@
         });
     }
 
+    // getGroupKey fonksiyonu PPSLAP'leri algılayacak şekilde güncellendi
     function getGroupKey(ppStr) {
         let clean = ppStr.trim().toUpperCase();
+        
         if(clean.includes("GIFTSINGLE") || (clean.includes("GIFT") && clean.includes("SINGLE"))) return "GIFT SINGLE";
         if(clean.includes("GIFTMULTI") || (clean.includes("GIFT") && clean.includes("MULTI"))) return "GIFT MULTI";
+        
+        if(clean === "PPSLAP" || (clean.includes("PPSLAP") && !clean.includes("NONSORT"))) return "PPSLAP";
+        if(clean === "PPSLAPNONSORT" || (clean.includes("PPSLAP") && clean.includes("NONSORT"))) return "PPSLAP NONSORT";
+
         if(clean.includes("NONSORT")) {
             if (clean.includes("MULTI")) return "MULTI NONSORT";
             return "SINGLE NONSORT"; 
         }
+        
         if(clean.includes("MULTISZONE") || clean.includes("MULTIMEDIUM") || clean === "PPMULTISZONE" || clean.endsWith("MULTI")) return "MULTI";
         if(clean.includes("SINGLE") || clean === "PPSINGLES") return "SINGLE";
+        
         return "SINGLE"; 
     }
 
@@ -946,13 +957,14 @@
         return "1-A";
     }
 
+    // getPph fonksiyonunda PPSLAP'ler Single mantığıyla haritalandırıldı
     function getPph(zone, pathGroup) {
         let z = (zone === 'A-HRV') ? 'A' : zone; 
         let pType = "SGL";
         if (pathGroup.includes("MULTI NONSORT")) pType = "M_NS";
-        else if (pathGroup.includes("SINGLE NONSORT")) pType = "S_NS";
+        else if (pathGroup.includes("SINGLE NONSORT") || pathGroup === "PPSLAP NONSORT") pType = "S_NS";
         else if (pathGroup.includes("MULTI")) pType = "MLT";
-        else if (pathGroup.includes("SINGLE")) pType = "SGL";
+        else if (pathGroup.includes("SINGLE") || pathGroup === "PPSLAP") pType = "SGL";
 
         let inputId = `pph_${z}_${pType}`;
         let inputEl = document.getElementById(inputId);
@@ -1005,6 +1017,7 @@
         return assignments;
     }
 
+    // Grafik renkleri 8 kategoriyi destekleyecek şekilde genişletildi
     function updateCharts(ppTotals, zoneTotals) {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         const textColor = isDark ? '#f8fafc' : '#0f172a';
@@ -1023,7 +1036,7 @@
                 labels: Object.keys(chartPPTotals),
                 datasets: [{
                     data: Object.values(chartPPTotals),
-                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#6366f1']
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#6366f1', '#14b8a6', '#f43f5e']
                 }]
             },
             options: {
@@ -1176,7 +1189,8 @@
         document.getElementById('corridorTable').innerHTML = corridorHTML;
 
         let anaIhtiyacToplam = 0;
-        const corePaths = ["SINGLE", "MULTI", "SINGLE NONSORT", "MULTI NONSORT"];
+        // corePaths PPSLAP'leri destekleyecek şekilde güncellendi
+        const corePaths = ["SINGLE", "MULTI", "SINGLE NONSORT", "MULTI NONSORT", "PPSLAP", "PPSLAP NONSORT"];
         corePaths.forEach(p => anaIhtiyacToplam += calculateRawDemand(p));
 
         let katsayiAna = 1;
